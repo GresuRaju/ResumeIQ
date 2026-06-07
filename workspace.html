@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResumeIQ — Workspace</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ink:#f5f0e8;--paper:#0a0c10;--cream:#12151c;--line:#1e232d;
+  --green:#00e5a0;--green-dark:#007a4a;--red:#f05d5e;--purple:#7c6af7;--gold:#f7c948;
+  --mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif;
+}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow:hidden;height:100vh;}
+canvas#bg3d{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.15;}
+
+/* Layout */
+.app-container{display:flex;height:100vh;position:relative;z-index:1;}
+.left-sidebar{
+  width:400px;min-width:320px;
+  background:rgba(18,21,28,0.96);backdrop-filter:blur(20px);
+  border-right:1px solid var(--line);
+  padding:24px;display:flex;flex-direction:column;gap:18px;
+  overflow-y:auto;height:100%;flex-shrink:0;
+}
+.right-workspace{flex:1;padding:32px;overflow-y:auto;height:100%;}
+
+/* Typography */
+.workspace-title{
+  font-size:20px;font-weight:800;letter-spacing:-0.8px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.workspace-title em{color:var(--green);font-style:normal;}
+.section-label{
+  font-family:var(--mono);font-size:10px;color:#556275;
+  letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;
+}
+
+/* Controls */
+textarea{
+  width:100%;height:120px;padding:12px;
+  font-family:var(--mono);font-size:12px;
+  border:1px solid var(--line);background:#07080b;
+  color:var(--ink);border-radius:6px;resize:none;outline:none;line-height:1.6;
+}
+textarea:focus{border-color:var(--green);}
+select{
+  width:100%;padding:10px;background:#07080b;
+  border:1px solid var(--line);color:var(--ink);
+  font-family:var(--mono);font-size:12px;border-radius:6px;outline:none;cursor:pointer;
+}
+.checkbox-row{display:flex;gap:20px;margin-top:10px;font-family:var(--mono);font-size:11px;}
+.checkbox-row label{cursor:pointer;display:flex;align-items:center;gap:6px;color:#8892b0;}
+.checkbox-row input[type="checkbox"]{accent-color:var(--green);}
+
+/* Sliders */
+.slider-block{background:#0d0f14;border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:14px;}
+.slider-row{display:flex;flex-direction:column;gap:6px;}
+.slider-header{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:#8892b0;}
+.slider-header b{color:var(--green);}
+input[type="range"]{width:100%;accent-color:var(--green);cursor:pointer;}
+
+/* Input mode switcher */
+.input-mode-bar{display:flex;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:12px;}
+.imode-btn{flex:1;padding:8px 6px;font-family:var(--mono);font-size:10px;font-weight:700;
+  border:none;background:transparent;color:#556275;cursor:pointer;transition:all .2s;
+  text-align:center;letter-spacing:.3px;}
+.imode-btn.active{background:var(--green);color:#000;}
+.imode-btn:not(.active):hover{background:#0d0f14;color:var(--ink);}
+.imode-panel{display:none;}
+.imode-panel.active{display:block;}
+
+/* Drive / Gmail input */
+.source-input{
+  width:100%;padding:10px 12px;background:#07080b;
+  border:1px solid var(--line);color:var(--ink);
+  font-family:var(--mono);font-size:11px;border-radius:6px;outline:none;
+  transition:border-color .2s;margin-bottom:8px;
+}
+.source-input:focus{border-color:var(--green);}
+.btn-fetch{
+  width:100%;padding:10px;background:#0d0f14;border:1px solid var(--line);
+  color:var(--ink);font-family:var(--mono);font-size:11px;font-weight:700;
+  border-radius:6px;cursor:pointer;transition:all .2s;letter-spacing:.5px;text-transform:uppercase;
+}
+.btn-fetch:hover{border-color:var(--green);color:var(--green);}
+.btn-fetch:disabled{opacity:0.4;cursor:not-allowed;}
+.fetch-status{font-family:var(--mono);font-size:10px;color:#556275;margin-top:6px;min-height:16px;line-height:1.5;}
+.fetch-status.ok{color:var(--green);}
+.fetch-status.err{color:var(--red);}
+
+/* Drop zone */
+.drop-zone{
+  border:1px dashed var(--line);background:#0d0f14;
+  padding:20px 16px;border-radius:8px;text-align:center;
+  position:relative;cursor:pointer;transition:border-color .2s;
+  overflow:hidden;
+}
+.drop-zone:hover{border-color:var(--green);}
+.drop-zone input[type="file"]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;
+  width:100%;height:100%;z-index:2;
+}
+.drop-zone h4,.drop-zone p{position:relative;z-index:1;pointer-events:none;}
+.drop-zone h4{font-size:13px;font-weight:700;margin-bottom:4px;}
+.drop-zone p{font-family:var(--mono);font-size:10px;color:#445165;}
+#fileList{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
+.file-pill{
+  background:#13161d;border:1px solid var(--line);border-radius:6px;
+  padding:7px 12px;display:flex;align-items:center;justify-content:space-between;
+  font-family:var(--mono);font-size:11px;color:#8892b0;
+}
+.file-pill .fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;color:var(--ink);}
+.file-pill .fsize{color:#445165;flex-shrink:0;}
+#fileCounter{margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--green);}
+
+/* Run button */
+.btn-run{
+  background:var(--green);color:#000;
+  padding:14px;font-size:12px;font-weight:700;font-family:var(--mono);
+  border:none;border-radius:6px;cursor:pointer;
+  transition:all .2s;letter-spacing:1px;text-transform:uppercase;width:100%;
+}
+.btn-run:hover{background:#00ffb3;box-shadow:0 0 20px rgba(0,229,160,0.3);}
+.btn-run:disabled{background:#1a1d24;color:#444;cursor:not-allowed;box-shadow:none;}
+
+/* Error banner */
+#errorBanner{
+  display:none;background:rgba(240,93,94,0.1);border:1px solid rgba(240,93,94,0.3);
+  border-radius:6px;padding:12px 14px;font-family:var(--mono);font-size:11px;
+  color:var(--red);line-height:1.6;
+}
+
+/* Dashboard panels */
+.panel{background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:24px;margin-bottom:20px;}
+.panel-title{font-size:13px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* Metric row */
+.metric-row{display:flex;gap:14px;margin-bottom:20px;}
+.metric-box{background:#0d0f14;border:1px solid var(--line);border-radius:8px;padding:16px;text-align:center;flex:1;}
+.metric-val{font-size:28px;font-weight:800;color:var(--green);}
+.metric-lbl{font-size:10px;color:#556275;text-transform:uppercase;margin-top:4px;font-family:var(--mono);}
+
+/* Candidate cards */
+.cand-card{
+  background:#0d0f14;border:1px solid var(--line);border-radius:8px;
+  padding:16px 18px;margin-bottom:10px;
+  border-left:3px solid transparent;transition:border-color .2s;
+}
+.cand-card.pass{border-left-color:var(--green);}
+.cand-card.fail{border-left-color:var(--red);}
+.cand-card h4{font-size:14px;font-weight:700;margin-bottom:6px;}
+.cand-score-row{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:11px;}
+.score-bar-wrap{flex:1;height:5px;background:#161a22;border-radius:3px;overflow:hidden;}
+.score-bar{height:100%;border-radius:3px;transition:width .6s ease;}
+
+/* Chip styles */
+.chip{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;margin:2px;display:inline-block;}
+.chip.hit{background:rgba(0,229,160,0.07);color:var(--green);border:1px solid rgba(0,229,160,0.2);}
+.chip.miss{background:rgba(240,93,94,0.07);color:var(--red);border:1px solid rgba(240,93,94,0.2);}
+
+/* ATS criteria list */
+.criteria-list{list-style:none;font-family:var(--mono);font-size:11px;color:#8892b0;}
+.criteria-list li{padding:5px 0;display:flex;align-items:center;gap:8px;border-bottom:1px solid #13161d;}
+.criteria-list li:last-child{border:none;}
+
+/* Gap card */
+.gap-card{background:#0d0f14;border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:10px;}
+.gap-card h4{font-size:13px;font-weight:700;margin-bottom:10px;}
+.gap-suggestion{
+  margin-top:10px;background:#07080b;border-left:3px solid var(--gold);
+  padding:8px 12px;font-family:var(--mono);font-size:11px;color:#a89050;line-height:1.6;
+}
+
+/* Similarity row */
+.sim-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #13161d;font-family:var(--mono);font-size:11px;}
+.sim-row:last-child{border:none;}
+.sim-name{width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;}
+.sim-score{color:var(--green);width:38px;flex-shrink:0;}
+.sim-bar-wrap{flex:1;height:4px;background:#161a22;border-radius:2px;overflow:hidden;}
+.sim-bar{height:100%;background:var(--green);border-radius:2px;}
+
+/* Two column grid */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* Export buttons */
+.btn-export{
+  padding:11px 18px;font-family:var(--mono);font-size:11px;font-weight:700;
+  border:none;border-radius:6px;cursor:pointer;transition:all .2s;
+  letter-spacing:0.5px;text-transform:uppercase;
+}
+.btn-export.purple{background:var(--purple);color:#fff;}
+.home-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:8px 12px;font-family:var(--mono);font-size:10px;font-weight:700;
+  color:var(--green);background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);
+  border-radius:999px;text-decoration:none;transition:all .2s;
+}
+.home-btn:hover{background:rgba(0,229,160,0.18);color:#fff;}
+.btn-export.purple:hover{background:#9585ff;}
+.btn-export.dark{background:#1e232d;color:var(--ink);}
+.btn-export.dark:hover{background:#262c38;}
+
+/* Empty state */
+.empty-state{
+  height:100%;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:16px;color:#556275;text-align:center;padding:40px;
+}
+.empty-state .big{font-size:48px;}
+.empty-state h3{font-size:18px;font-weight:700;color:#8892b0;}
+.empty-state p{font-family:var(--mono);font-size:12px;line-height:1.7;max-width:360px;}
+
+@keyframes slideIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+.panel{animation:slideIn .35s ease both;}
+
+/* Inline quick-nav — sits inside results area, not fixed */
+.quick-nav{
+  display:none;
+  background:rgba(13,15,20,0.95);backdrop-filter:blur(16px);
+  border:1px solid var(--line);border-radius:40px;
+  padding:8px 12px;gap:4px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+}
+.qnav-btn{
+  padding:7px 14px;font-family:var(--mono);font-size:11px;
+  border:none;background:transparent;color:#556275;
+  cursor:pointer;border-radius:24px;transition:all .2s;white-space:nowrap;
+}
+.qnav-btn:hover{background:#1e232d;color:var(--ink);}
+.qnav-btn.active{background:var(--green);color:#000;font-weight:700;}
+.qnav-btn.email-btn{background:rgba(0,229,160,0.1);color:var(--green);border:1px solid rgba(0,229,160,0.2);}
+.qnav-btn.email-btn:hover{background:var(--green);color:#000;}
+.new-screening-btn{
+  padding:7px 14px;font-family:var(--mono);font-size:11px;
+  border:1px solid rgba(240,93,94,0.3);background:rgba(240,93,94,0.08);
+  color:var(--red);cursor:pointer;border-radius:24px;transition:all .2s;white-space:nowrap;
+  margin-left:auto;
+}
+.new-screening-btn:hover{background:var(--red);color:#fff;}
+</style>
+</head>
+<body>
+<canvas id="bg3d"></canvas>
+
+<!-- Floating quick-nav — appears after results load -->
+<div class="quick-nav" id="quickNav">
+  <button class="qnav-btn" onclick="scrollToSection('summarySection',event)">📊 Summary</button>
+  <button class="qnav-btn" onclick="scrollToSection('candidatesSection',event)">🏆 Candidates</button>
+  <button class="qnav-btn" onclick="scrollToSection('gapSection',event)">🔍 Gap Analysis</button>
+  <button class="qnav-btn" onclick="scrollToSection('atsSection',event)">✅ ATS Audit</button>
+  <button class="qnav-btn" onclick="scrollToSection('simSection',event)">📈 Similarity</button>
+  <button class="qnav-btn email-btn" onclick="goToEmailPage()">🚀 Send Emails</button>
+  <button class="new-screening-btn" onclick="newScreening()">✕ New Screening</button>
+</div>
+
+<div class="app-container">
+
+  <!-- ── LEFT SIDEBAR ───────────────────────────────────────────── -->
+  <aside class="left-sidebar">
+
+    <div class="workspace-title">
+      <div>Resume<em>IQ</em> ✦</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <a class="home-btn" href="resumeiq_final.html">🏠 Home</a>
+        <span style="font-family:var(--mono);font-size:10px;color:#556275;">v2.0</span>
+      </div>
+    </div>
+
+    <!-- Model -->
+    <div>
+      <div class="section-label">01 · Scoring Model</div>
+      <select id="modelChoice">
+        <option value="SVM (RBF Kernel)">SVM (RBF Kernel) — 93.7% Acc</option>
+        <option value="Logistic Regression">Logistic Regression — 91.2% Acc</option>
+      </select>
+    </div>
+
+    <!-- JD -->
+    <div>
+      <div class="section-label">02 · Job Description</div>
+      <textarea id="jdInput" placeholder="Paste the full job description here..."></textarea>
+      <div class="checkbox-row">
+        <label><input type="checkbox" id="fresherCheck"> Fresher Mode</label>
+      </div>
+      <!-- BERT semantic similarity is always ON -->
+      <div style="margin-top:8px;background:#0d0f14;border:1px solid rgba(124,106,247,0.25);border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--purple);display:inline-block;flex-shrink:0;"></span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--purple);">BERT Semantic Similarity — Always On</span>
+      </div>
+    </div>
+
+    <!-- Thresholds -->
+    <div>
+      <div class="section-label">03 · Shortlist Thresholds</div>
+      <div class="slider-block">
+        <div class="slider-row">
+          <div class="slider-header">
+            <span>Min Match Score</span>
+            <b id="matchValLbl">60%</b>
+          </div>
+          <input type="range" id="matchSlider" min="0" max="100" value="60">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span>Min ATS Score</span>
+            <b id="atsValLbl">50</b>
+          </div>
+          <input type="range" id="atsSlider" min="0" max="100" value="50">
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Source -->
+    <div>
+      <div class="section-label">04 · Resume Input Source</div>
+
+      <!-- Mode toggle -->
+      <div class="input-mode-bar">
+        <button class="imode-btn active" id="modeManual"  onclick="switchInputMode('manual')">📁 Upload</button>
+        <button class="imode-btn"        id="modeDrive"   onclick="switchInputMode('drive')">☁ Drive</button>
+        <button class="imode-btn"        id="modeGmail"   onclick="switchInputMode('gmail')">✉ Gmail</button>
+      </div>
+
+      <!-- Manual upload -->
+      <div class="imode-panel active" id="panelManual">
+        <div class="drop-zone">
+          <input type="file" id="resumeInput" multiple accept=".pdf,.txt">
+          <h4>Drop resumes here</h4>
+          <p>PDF or TXT · multiple files · max 100 MB</p>
+          <div id="fileCounter"></div>
+        </div>
+        <div id="fileList"></div>
+      </div>
+
+      <!-- Google Drive -->
+      <div class="imode-panel" id="panelDrive">
+        <div style="background:#07080b;border:1px solid rgba(0,229,160,0.15);border-radius:6px;padding:10px 12px;margin-bottom:10px;font-family:var(--mono);font-size:10px;color:#556275;line-height:1.6;">
+          Enter a public Google Drive folder URL or folder ID.<br>
+          All PDF/TXT resumes in that folder will be fetched automatically.
+        </div>
+        <input class="source-input" id="driveFolderUrl"
+          placeholder="https://drive.google.com/drive/folders/...">
+        <button class="btn-fetch" id="driveFetchBtn" onclick="fetchFromDrive()">
+          ☁ Fetch Resumes from Drive
+        </button>
+        <div class="fetch-status" id="driveStatus"></div>
+      </div>
+
+      <!-- Gmail Inbox -->
+      <div class="imode-panel" id="panelGmail">
+        <div style="background:#07080b;border:1px solid rgba(124,106,247,0.15);border-radius:6px;padding:10px 12px;margin-bottom:10px;font-family:var(--mono);font-size:10px;color:#556275;line-height:1.6;">
+          Scans your inbox by <b style="color:var(--ink);">date range</b> — works for 10,000+ emails.<br>
+          Finds PDF/TXT attachments + plain-text resume emails automatically.
+        </div>
+        <input class="source-input" id="gmailAddress"
+          placeholder="your-hiring@gmail.com">
+        <input class="source-input" type="password" id="gmailAppPass"
+          placeholder="App Password (xxxx xxxx xxxx xxxx)" style="letter-spacing:3px;">
+        <input class="source-input" id="gmailSubjectFilter"
+          placeholder='Subject filter (optional) e.g. "Application for"' style="letter-spacing:normal;">
+        <select id="gmailDateRange" onchange="toggleCustomDate()" style="width:100%;padding:10px 12px;background:#07080b;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:11px;border-radius:6px;outline:none;margin-bottom:8px;cursor:pointer;">
+          <option value="7">Last 7 days</option>
+          <option value="30" selected>Last 30 days</option>
+          <option value="90">Last 3 months</option>
+          <option value="180">Last 6 months</option>
+          <option value="365">Last 1 year</option>
+          <option value="custom">Custom date range...</option>
+        </select>
+        <!-- Custom date range — shown only when "custom" selected -->
+        <div id="customDateRow" style="display:none;gap:8px;margin-bottom:8px;">
+          <div style="display:flex;gap:8px;">
+            <div style="flex:1;">
+              <div style="font-family:var(--mono);font-size:9px;color:#556275;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">From</div>
+              <input type="date" id="customDateFrom" class="source-input" style="margin-bottom:0;">
+            </div>
+            <div style="flex:1;">
+              <div style="font-family:var(--mono);font-size:9px;color:#556275;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">To</div>
+              <input type="date" id="customDateTo" class="source-input" style="margin-bottom:0;">
+            </div>
+          </div>
+        </div>
+        <button class="btn-fetch" id="gmailFetchBtn" onclick="fetchFromGmail()">
+          ✉ Fetch Resumes from Gmail
+        </button>
+        <div class="fetch-status" id="gmailStatus"></div>
+      </div>
+
+    </div>
+
+    <!-- Error banner -->
+    <div id="errorBanner"></div>
+
+    <!-- Run -->
+    <button class="btn-run" id="runBtn" disabled>
+      ▶ Screen Resumes
+    </button>
+
+  </aside>
+
+  <!-- ── RIGHT WORKSPACE ───────────────────────────────────────── -->
+  <main class="right-workspace" id="workspace">
+
+    <!-- Empty state shown before first run -->
+    <div class="empty-state" id="emptyState">
+      <div class="big">📋</div>
+      <h3>No results yet</h3>
+      <p>Upload one or more resumes, paste a job description, then hit <b>Screen Resumes</b>.</p>
+    </div>
+
+    <!-- Results injected here -->
+    <div id="resultsRoot" style="display:none;"></div>
+
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+
+// ── THREE.JS BACKGROUND ───────────────────────────────────────────────────────
+(function() {
+  const c = document.getElementById('bg3d');
+  const r = new THREE.WebGLRenderer({canvas:c, antialias:true, alpha:true});
+  r.setPixelRatio(Math.min(devicePixelRatio,2));
+  r.setSize(innerWidth,innerHeight);
+  const sc=new THREE.Scene(), cam=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,500);
+  cam.position.z=35;
+  const geo=new THREE.IcosahedronGeometry(1,0), objs=[];
+  for(let i=0;i<14;i++){
+    const mat=new THREE.MeshBasicMaterial({
+      color:i%2===0?0x00e5a0:0x7c6af7,
+      wireframe:true,transparent:true,opacity:0.04+Math.random()*0.06
+    });
+    const m=new THREE.Mesh(geo,mat);
+    m.scale.setScalar(0.6+Math.random()*2.2);
+    m.position.set((Math.random()-.5)*65,(Math.random()-.5)*45,(Math.random()-.5)*20);
+    objs.push({m,rx:0.002,ry:0.003});
+    sc.add(m);
+  }
+  (function frame(){
+    requestAnimationFrame(frame);
+    objs.forEach(o=>{o.m.rotation.x+=o.rx;o.m.rotation.y+=o.ry;});
+    r.render(sc,cam);
+  })();
+  window.addEventListener('resize',()=>{
+    cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();r.setSize(innerWidth,innerHeight);
+  });
+})();
+
+// ── SLIDER LISTENERS ─────────────────────────────────────────────────────────
+const matchSlider = document.getElementById('matchSlider');
+const atsSlider   = document.getElementById('atsSlider');
+const matchLbl    = document.getElementById('matchValLbl');
+const atsLbl      = document.getElementById('atsValLbl');
+
+matchSlider.addEventListener('input', () => {
+  matchLbl.textContent = matchSlider.value + '%';
+  if (cachedResults) renderResults(cachedResults);
+});
+atsSlider.addEventListener('input', () => {
+  atsLbl.textContent = atsSlider.value;
+  if (cachedResults) renderResults(cachedResults);
+});
+
+// ── INPUT MODE ────────────────────────────────────────────────────────────────
+let inputMode        = 'manual';  // 'manual' | 'drive' | 'gmail'
+let fetchedResumes   = [];        // [{name, content_b64, filename}] from Drive/Gmail
+const BACKEND_URL    = 'http://127.0.0.1:8000';
+
+function switchInputMode(mode){
+  inputMode      = mode;
+  fetchedResumes = [];
+  // Toggle panels
+  ['Manual','Drive','Gmail'].forEach(m => {
+    document.getElementById('panel'+m).classList.toggle('active', m.toLowerCase()===mode);
+    document.getElementById('mode'+m).classList.toggle('active',  m.toLowerCase()===mode);
+  });
+  updateRunBtn();
+}
+
+// ── GOOGLE DRIVE FETCH ────────────────────────────────────────────────────────
+async function fetchFromDrive(){
+  const url    = document.getElementById('driveFolderUrl').value.trim();
+  const status = document.getElementById('driveStatus');
+  const btn    = document.getElementById('driveFetchBtn');
+  if(!url){ status.textContent='Paste a Drive folder URL first.'; status.className='fetch-status err'; return; }
+
+  btn.disabled = true;
+  status.textContent = '⏳ Fetching resumes from Google Drive...';
+  status.className   = 'fetch-status';
+
+  try {
+    const res  = await fetch(`${BACKEND_URL}/api/fetch-drive`, {
+      method:  'POST',
+      headers: {'Content-Type':'application/json'},
+      body:    JSON.stringify({ folder_url: url })
+    });
+    const data = await res.json();
+    if(data.success && data.files.length > 0){
+      fetchedResumes = data.files;
+      status.textContent = `✓ ${data.files.length} resume(s) fetched from Drive.`;
+      status.className   = 'fetch-status ok';
+      updateRunBtn();
+    } else {
+      status.textContent = data.error || 'No PDF/TXT files found in that folder.';
+      status.className   = 'fetch-status err';
+    }
+  } catch(e){
+    status.textContent = 'Backend error — make sure FastAPI is running.';
+    status.className   = 'fetch-status err';
+  }
+  btn.disabled = false;
+}
+
+// ── GMAIL FETCH ───────────────────────────────────────────────────────────────
+function toggleCustomDate(){
+  const val = document.getElementById('gmailDateRange').value;
+  document.getElementById('customDateRow').style.display = val === 'custom' ? 'flex' : 'none';
+  // Set default "to" as today, "from" as 30 days ago
+  if(val === 'custom'){
+    const today  = new Date();
+    const from   = new Date(); from.setDate(today.getDate() - 30);
+    const fmt    = d => d.toISOString().split('T')[0];
+    document.getElementById('customDateTo').value   = fmt(today);
+    document.getElementById('customDateFrom').value = fmt(from);
+  }
+}
+
+async function fetchFromGmail(){
+  const email     = document.getElementById('gmailAddress').value.trim();
+  const pass      = document.getElementById('gmailAppPass').value.trim();
+  const filter    = document.getElementById('gmailSubjectFilter').value.trim();
+  const rangeVal  = document.getElementById('gmailDateRange').value;
+  const status    = document.getElementById('gmailStatus');
+  const btn       = document.getElementById('gmailFetchBtn');
+
+  if(!email || !pass){
+    status.textContent = 'Enter Gmail address and App Password first.';
+    status.className   = 'fetch-status err'; return;
+  }
+
+  // Build date_range value for backend
+  let dateRange, rangeLabel;
+  if(rangeVal === 'custom'){
+    const from = document.getElementById('customDateFrom').value;
+    const to   = document.getElementById('customDateTo').value;
+    if(!from || !to){
+      status.textContent = 'Please select both From and To dates.';
+      status.className   = 'fetch-status err'; return;
+    }
+    if(new Date(from) > new Date(to)){
+      status.textContent = '"From" date must be before "To" date.';
+      status.className   = 'fetch-status err'; return;
+    }
+    // Send as "FROM|TO" — backend will parse this
+    dateRange  = `${from}|${to}`;
+    rangeLabel = `${from} → ${to}`;
+  } else {
+    dateRange  = rangeVal;
+    rangeLabel = `last ${rangeVal} days`;
+  }
+
+  btn.disabled = true;
+  status.textContent = `⏳ Scanning inbox (${rangeLabel}) for resume attachments...`;
+  status.className   = 'fetch-status';
+
+  try {
+    const res  = await fetch(`${BACKEND_URL}/api/fetch-gmail`, {
+      method:  'POST',
+      headers: {'Content-Type':'application/json'},
+      body:    JSON.stringify({ email, app_password: pass, subject_filter: filter, date_range: dateRange })
+    });
+    const data = await res.json();
+    if(data.success && data.files.length > 0){
+      fetchedResumes = data.files;
+      status.textContent = `✓ ${data.files.length} resume(s) found — scanned ${data.scanned} emails (${rangeLabel}).`;
+      status.className   = 'fetch-status ok';
+      updateRunBtn();
+    } else {
+      status.textContent = data.error || `No resume attachments found. Scanned ${data.scanned||0} emails.`;
+      status.className   = 'fetch-status err';
+    }
+  } catch(e){
+    status.textContent = 'Backend error — make sure FastAPI is running.';
+    status.className   = 'fetch-status err';
+  }
+  btn.disabled = false;
+}
+
+// ── FILE INPUT HANDLER ────────────────────────────────────────────────────────
+const resumeInput = document.getElementById('resumeInput');
+const fileCounter = document.getElementById('fileCounter');
+const fileListEl  = document.getElementById('fileList');
+const runBtn      = document.getElementById('runBtn');
+
+resumeInput.addEventListener('change', () => {
+  const files = resumeInput.files;
+  fileListEl.innerHTML = '';
+
+  if (!files || files.length === 0) {
+    fileCounter.textContent = '';
+    updateRunBtn();
+    return;
+  }
+
+  let totalBytes = 0;
+  Array.from(files).forEach(f => totalBytes += f.size);
+  const mb = totalBytes / (1024 * 1024);
+
+  if (mb > 100) {
+    showError(`Total size ${mb.toFixed(1)} MB exceeds 100 MB limit.`);
+    resumeInput.value = '';
+    fileCounter.textContent = '';
+    updateRunBtn();
+    return;
+  }
+
+  hideError();
+  fileCounter.textContent = `✓ ${files.length} file${files.length > 1 ? 's' : ''} staged (${mb.toFixed(1)} MB)`;
+
+  // Show individual file pills
+  Array.from(files).forEach(f => {
+    const pill = document.createElement('div');
+    pill.className = 'file-pill';
+    pill.innerHTML = `
+      <span class="fname">📄 ${f.name}</span>
+      <span class="fsize">${(f.size/1024).toFixed(0)} KB</span>
+    `;
+    fileListEl.appendChild(pill);
+  });
+
+  updateRunBtn();
+});
+
+function updateRunBtn() {
+  const hasJD = document.getElementById('jdInput').value.trim().length > 0;
+  let hasResumes = false;
+  if (inputMode === 'manual') {
+    hasResumes = document.getElementById('resumeInput').files?.length > 0;
+  } else {
+    hasResumes = fetchedResumes.length > 0;
+  }
+  runBtn.disabled = !(hasResumes && hasJD);
+}
+
+document.getElementById('jdInput').addEventListener('input', updateRunBtn);
+
+// ── ERROR HELPERS ─────────────────────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('errorBanner');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+function hideError() {
+  document.getElementById('errorBanner').style.display = 'none';
+}
+
+// ── GLOBAL CACHE ──────────────────────────────────────────────────────────────
+let cachedResults  = null;
+let cachedJdSkills = [];
+
+// Restore results from sessionStorage when coming back from email page
+function restoreSession(){
+  try {
+    const saved = sessionStorage.getItem('resumeiq_results');
+    if(saved){
+      cachedResults = JSON.parse(saved);
+      renderResults(cachedResults);
+    }
+  } catch(e){}
+}
+
+(function(){
+  restoreSession();
+  if(sessionStorage.getItem('resumeiq_email_sent')){
+    sessionStorage.removeItem('resumeiq_email_sent');
+    restoreSession();
+  }
+})();
+
+window.addEventListener('storage', (e) => {
+  if(e.key === 'resumeiq_email_sent' && e.newValue){
+    sessionStorage.removeItem('resumeiq_email_sent');
+    restoreSession();
+  }
+});
+
+window.addEventListener('pageshow', () => {
+  if(sessionStorage.getItem('resumeiq_email_sent')){
+    sessionStorage.removeItem('resumeiq_email_sent');
+    restoreSession();
+  }
+});
+
+// ── RUN BUTTON ────────────────────────────────────────────────────────────────
+runBtn.addEventListener('click', async () => {
+  const jd    = document.getElementById('jdInput').value.trim();
+  const files = resumeInput.files;
+  if (!jd || !files || files.length === 0) return;
+
+  runBtn.disabled  = true;
+  runBtn.textContent = '⏳ Screening...';
+  hideError();
+
+  // Build FormData differently based on input mode
+  const fd = new FormData();
+  fd.append('job_description', jd);
+  fd.append('selected_model', document.getElementById('modelChoice').value);
+  fd.append('fresher_mode', document.getElementById('fresherCheck').checked ? 'true' : 'false');
+  fd.append('use_bert', 'true');
+  fd.append('min_match', matchSlider.value);
+  fd.append('min_ats',   atsSlider.value);
+
+  if(inputMode === 'manual'){
+    // Normal file upload
+    Array.from(files).forEach(f => fd.append('resumes', f));
+  } else {
+    // Drive or Gmail — send fetched file data as JSON via separate endpoint
+    runBtn.textContent = '⏳ Screening...';
+    try {
+      const res  = await fetch(`${BACKEND_URL}/api/screen-fetched`, {
+        method:  'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          job_description: jd,
+          selected_model:  document.getElementById('modelChoice').value,
+          fresher_mode:    document.getElementById('fresherCheck').checked,
+          min_match:       parseInt(matchSlider.value),
+          min_ats:         parseInt(atsSlider.value),
+          files:           fetchedResumes,
+        })
+      });
+      const data = await res.json();
+      if(data.success && data.results?.length > 0){
+        cachedResults  = data.results;
+        cachedJdSkills = data.jd_skills || [];
+        sessionStorage.setItem('resumeiq_results', JSON.stringify(cachedResults));
+        renderResults(cachedResults);
+      } else {
+        showError(data.detail || 'No results returned.');
+      }
+    } catch(err){
+      showError(`Cannot reach backend. Make sure FastAPI is running on ${BACKEND_URL}`);
+      console.error(err);
+    } finally {
+      runBtn.disabled   = false;
+      runBtn.textContent = '▶ Screen Resumes';
+    }
+    return; // skip the normal fetch below
+  }
+
+  try {
+    const res  = await fetch(`${BACKEND_URL}/api/screen`, { method:'POST', body:fd });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({detail: res.statusText}));
+      showError(err.detail || 'Server error.');
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data.success && data.results && data.results.length > 0) {
+      cachedResults  = data.results;
+      cachedJdSkills = data.jd_skills || [];
+      sessionStorage.setItem('resumeiq_results', JSON.stringify(cachedResults));
+      renderResults(cachedResults);
+    } else {
+      showError('No results returned. Check that the files contain readable text.');
+    }
+
+  } catch (err) {
+    showError(`Cannot reach the backend. Make sure FastAPI is running on ${BACKEND_URL}`);
+    console.error(err);
+  } finally {
+    runBtn.disabled  = false;
+    runBtn.textContent = '▶ Screen Resumes';
+  }
+});
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function scoreColor(s) {
+  if (s >= 70) return 'var(--green)';
+  if (s >= 45) return 'var(--gold)';
+  return 'var(--red)';
+}
+
+function renderResults(results) {
+  const minMatch = parseInt(matchSlider.value);
+  const minAts   = parseInt(atsSlider.value);
+
+  const shortlisted = results.filter(r => r.match_score >= minMatch && r.ats_score >= minAts);
+  const rejected    = results.filter(r => r.match_score <  minMatch || r.ats_score <  minAts);
+  const rate        = results.length ? Math.round((shortlisted.length / results.length) * 100) : 0;
+
+  document.getElementById('emptyState').style.display = 'none';
+  const root = document.getElementById('resultsRoot');
+  root.style.display = 'block';
+  root.innerHTML = '';
+
+  // Move quick-nav inside results area at the very top
+  const nav = document.getElementById('quickNav');
+  nav.style.display = 'flex';
+  root.appendChild(nav);
+
+  // ── 1. Summary metrics ───────────────────────────────────────────────
+  const summaryPanel = makePanel('// Screening Summary');
+  summaryPanel.id = 'summarySection';
+  summaryPanel.innerHTML += `
+    <div class="metric-row">
+      <div class="metric-box">
+        <div class="metric-val">${results.length}</div>
+        <div class="metric-lbl">Total Screened</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" style="color:var(--green)">${shortlisted.length}</div>
+        <div class="metric-lbl">Shortlisted</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" style="color:var(--red)">${rejected.length}</div>
+        <div class="metric-lbl">Not Qualified</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" style="color:var(--purple)">${rate}%</div>
+        <div class="metric-lbl">Pass Rate</div>
+      </div>
+    </div>
+  `;
+  root.appendChild(summaryPanel);
+
+  // ── 2. All candidates ranked ─────────────────────────────────────────
+  const twoCol = document.createElement('div');
+  twoCol.className = 'two-col';
+  twoCol.id = 'candidatesSection';
+  twoCol.style.marginBottom = '20px';
+
+  // Left: all candidates
+  const allCol = document.createElement('div');
+  allCol.innerHTML = `<div class="section-label">// All Candidates (Ranked)</div>`;
+  results.forEach((c, i) => {
+    const isPass = c.match_score >= minMatch && c.ats_score >= minAts;
+    const div = document.createElement('div');
+    div.className = `cand-card ${isPass ? 'pass' : 'fail'}`;
+    div.innerHTML = `
+      <h4>#${i+1} ${c.name}</h4>
+      <div class="cand-score-row">
+        <span style="color:${scoreColor(c.match_score)};font-weight:700;width:36px;">${c.match_score}%</span>
+        <div class="score-bar-wrap">
+          <div class="score-bar" style="width:${c.match_score}%;background:${scoreColor(c.match_score)};"></div>
+        </div>
+        <span style="color:#556275;width:60px;">ATS: ${c.ats_score}</span>
+        ${c.bert_sim !== null && c.bert_sim !== undefined
+          ? `<span style="color:var(--purple);font-family:var(--mono);font-size:10px;width:68px;flex-shrink:0;">BERT ${Math.round(c.bert_sim*100)}%</span>`
+          : ''}
+        <span style="color:#556275;">${c.exp_years}y</span>
+      </div>
+    `;
+    allCol.appendChild(div);
+  });
+  twoCol.appendChild(allCol);
+
+  // Right: shortlist
+  const slCol = document.createElement('div');
+  slCol.innerHTML = `<div class="section-label">// ✅ Shortlisted (${shortlisted.length})</div>`;
+  if (shortlisted.length === 0) {
+    slCol.innerHTML += `<div style="font-family:var(--mono);font-size:12px;color:#556275;padding:16px;">No candidates meet the current thresholds. Try lowering the sliders.</div>`;
+  } else {
+    shortlisted.forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'cand-card pass';
+      div.innerHTML = `
+        <h4 style="color:var(--green)">${c.name}</h4>
+        <div style="font-family:var(--mono);font-size:11px;color:#8892b0;line-height:1.8;margin-top:4px;">
+          Match: <b style="color:var(--green)">${c.match_score}%</b> ·
+          ATS: <b>${c.ats_score}</b> ·
+          Exp: ${c.exp_years} yr(s)
+        </div>
+      `;
+      slCol.appendChild(div);
+    });
+  }
+  twoCol.appendChild(slCol);
+  root.appendChild(twoCol);
+
+  // ── 3. Skill Gap Analysis ────────────────────────────────────────────
+  const gapPanel = makePanel('// Skill Gap Analysis');
+  gapPanel.id = 'gapSection';
+  const gapGrid  = document.createElement('div');
+  gapGrid.className = 'two-col';
+  results.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'gap-card';
+    const hitChips  = (c.matched_skills || []).slice(0, 8).map(s => `<span class="chip hit">✓ ${s}</span>`).join('');
+    const missChips = (c.missing_skills || []).slice(0, 8).map(s => `<span class="chip miss">✗ ${s}</span>`).join('');
+    const suggs     = (c.suggestions    || []).slice(0, 2).map(s => `<div class="gap-suggestion">→ ${s}</div>`).join('');
+    card.innerHTML = `
+      <h4>${c.name}</h4>
+      <div style="margin-bottom:6px;font-family:var(--mono);font-size:10px;color:#556275;">Matched (${c.matched_skills.length})</div>
+      <div>${hitChips  || '<span style="color:#556275;font-size:10px;font-family:var(--mono);">—</span>'}</div>
+      <div style="margin:10px 0 6px;font-family:var(--mono);font-size:10px;color:#556275;">Missing (${c.missing_skills.length})</div>
+      <div>${missChips || '<span style="color:var(--green);font-size:10px;font-family:var(--mono);">Full match ✓</span>'}</div>
+      ${suggs ? `<div style="margin-top:8px;">${suggs}</div>` : ''}
+    `;
+    gapGrid.appendChild(card);
+  });
+  gapPanel.appendChild(gapGrid);
+  root.appendChild(gapPanel);
+
+  // ── 4. ATS Audit ─────────────────────────────────────────────────────
+  const atsPanel = makePanel('// ATS Criteria Audit');
+  atsPanel.id = 'atsSection';
+  const atsGrid  = document.createElement('div');
+  atsGrid.className = 'two-col';
+  results.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'gap-card';
+    let liHtml = '';
+    (c.criteria || []).forEach(cr => {
+      liHtml += `<li>
+        <span style="color:${cr.pass ? 'var(--green)' : 'var(--red)'}">${cr.pass ? '✓' : '✗'}</span>
+        ${cr.label}
+      </li>`;
+    });
+    const atsColor = c.ats_score >= 70 ? 'var(--green)' : c.ats_score >= 45 ? 'var(--gold)' : 'var(--red)';
+    const bd = c.ats_breakdown || {};
+    const breakdownHtml = bd.rules_pts !== undefined ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:12px 0;border-top:1px solid #1e232d;padding-top:12px;">
+        <div style="text-align:center;background:#07080b;padding:8px;border-radius:4px;">
+          <div style="font-size:16px;font-weight:800;color:var(--ink);">${bd.rules_pts}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:#556275;margin-top:2px;">RULES /50</div>
+        </div>
+        <div style="text-align:center;background:#07080b;padding:8px;border-radius:4px;">
+          <div style="font-size:16px;font-weight:800;color:var(--gold);">${bd.keyword_pts}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:#556275;margin-top:2px;">KEYWORDS /25</div>
+        </div>
+        <div style="text-align:center;background:#07080b;padding:8px;border-radius:4px;">
+          <div style="font-size:16px;font-weight:800;color:var(--purple);">${bd.semantic_pts}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:#556275;margin-top:2px;">BERT /25</div>
+        </div>
+      </div>
+    ` : '';
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <h4>${c.name}</h4>
+        <span style="font-size:22px;font-weight:800;color:${atsColor};font-family:var(--sans);">${c.ats_score}</span>
+      </div>
+      ${breakdownHtml}
+      <ul class="criteria-list">${liHtml}</ul>
+    `;
+    atsGrid.appendChild(card);
+  });
+  atsPanel.appendChild(atsGrid);
+  root.appendChild(atsPanel);
+
+  // ── 5. Similarity (TF-IDF + BERT both primary) ──────────────────────
+  const simPanel = makePanel('// Semantic Similarity — TF-IDF + BERT');
+  simPanel.id = 'simSection';
+
+  // Header row
+  const simHeader = document.createElement('div');
+  simHeader.style.cssText = 'display:flex;align-items:center;gap:12px;padding:0 0 10px;border-bottom:1px solid #1e232d;margin-bottom:4px;font-family:var(--mono);font-size:10px;color:#556275;letter-spacing:.1em;text-transform:uppercase;';
+  simHeader.innerHTML = `
+    <div style="width:140px;flex-shrink:0;">Candidate</div>
+    <div style="width:56px;flex-shrink:0;">TF-IDF</div>
+    <div style="flex:1;">TF-IDF Bar</div>
+    <div style="width:56px;flex-shrink:0;color:var(--purple);">BERT</div>
+    <div style="width:100px;flex-shrink:0;">BERT Bar</div>
+  `;
+  simPanel.appendChild(simHeader);
+
+  results.forEach(c => {
+    const tfidfPct = Math.round(c.sim * 100);
+    const bertPct  = c.bert_sim !== null && c.bert_sim !== undefined
+                     ? Math.round(c.bert_sim * 100)
+                     : null;
+    const row = document.createElement('div');
+    row.className = 'sim-row';
+    row.innerHTML = `
+      <div class="sim-name">${c.name}</div>
+      <div class="sim-score" style="width:56px;">${tfidfPct}%</div>
+      <div class="sim-bar-wrap">
+        <div class="sim-bar" style="width:${tfidfPct}%;background:${scoreColor(tfidfPct)};"></div>
+      </div>
+      ${bertPct !== null ? `
+        <div style="font-family:var(--mono);font-size:11px;color:var(--purple);font-weight:700;width:56px;flex-shrink:0;">${bertPct}%</div>
+        <div style="width:100px;flex-shrink:0;height:4px;background:#161a22;border-radius:2px;overflow:hidden;">
+          <div style="height:100%;width:${bertPct}%;background:var(--purple);border-radius:2px;"></div>
+        </div>
+      ` : `<div style="font-family:var(--mono);font-size:10px;color:#445165;width:156px;">—</div>`}
+    `;
+    simPanel.appendChild(row);
+  });
+  root.appendChild(simPanel);
+
+  // ── 6. Export ────────────────────────────────────────────────────────
+  const exportPanel = makePanel('// Export');
+  exportPanel.innerHTML += `
+    <div style="display:flex;gap:12px;">
+      <button class="btn-export purple" onclick="exportCSV()">📥 Export CSV</button>
+      <button class="btn-export dark"   onclick="copyEmailTemplate()">📧 Copy Email Template</button>
+      <button class="btn-export" style="background:var(--green);color:#000;font-weight:700;" onclick="goToEmailPage()">🚀 Send Shortlist Emails</button>
+    </div>
+    <div id="emailBox" style="display:none;margin-top:16px;background:#07080b;border:1px solid var(--line);padding:16px;border-radius:6px;font-family:var(--mono);font-size:11px;white-space:pre-wrap;line-height:1.7;color:#8892b0;"></div>
+  `;
+  root.appendChild(exportPanel);
+}
+
+// ── HELPER: build a panel element ────────────────────────────────────────────
+function makePanel(label) {
+  const p = document.createElement('div');
+  p.className = 'panel';
+  if (label) {
+    const lbl = document.createElement('div');
+    lbl.className = 'section-label';
+    lbl.textContent = label;
+    p.appendChild(lbl);
+  }
+  return p;
+}
+
+// ── CSV EXPORT ────────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!cachedResults) return;
+  const minMatch = parseInt(matchSlider.value);
+  const minAts   = parseInt(atsSlider.value);
+  const header = 'Name,File,Match%,ATS,SkillScore,TF-IDF Sim,BERT Sim,ExpYears,MatchedSkills,MissingSkills,Verdict';
+  const rows = cachedResults.map(c => {
+    const pass    = c.match_score >= minMatch && c.ats_score >= minAts;
+    const bertVal = c.bert_sim !== null && c.bert_sim !== undefined ? c.bert_sim : '';
+    return [
+      `"${c.name}"`, `"${c.filename}"`,
+      c.match_score, c.ats_score,
+      c.skill_score, c.sim, bertVal, c.exp_years,
+      `"${c.matched_skills.join('; ')}"`,
+      `"${c.missing_skills.join('; ')}"`,
+      pass ? 'SHORTLISTED' : 'REJECTED'
+    ].join(',');
+  });
+  const blob = new Blob([[header, ...rows].join('\n')], {type:'text/csv'});
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob),
+    download: 'resumeiq_results.csv'
+  });
+  a.click();
+}
+
+// ── SCROLL TO SECTION ─────────────────────────────────────────────────────────
+function scrollToSection(id, ev){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const workspace = document.getElementById('workspace');
+  workspace.scrollTo({top: el.offsetTop - 16, behavior:'smooth'});
+  document.querySelectorAll('.qnav-btn:not(.email-btn)').forEach(b => b.classList.remove('active'));
+  if(ev && ev.target) ev.target.classList.add('active');
+}
+
+// ── NEW SCREENING — clears results, user starts fresh ─────────────────────────
+function newScreening(){
+  if(!confirm('Clear current results and start a new screening?')) return;
+  cachedResults  = null;
+  cachedJdSkills = [];
+  sessionStorage.removeItem('resumeiq_results');
+  // Hide results, show empty state
+  const root = document.getElementById('resultsRoot');
+  root.style.display = 'none';
+  root.innerHTML     = '';
+  document.getElementById('emptyState').style.display = '';
+  // Put quick-nav back in its original spot (hidden)
+  const nav = document.getElementById('quickNav');
+  nav.style.display = 'none';
+  document.body.appendChild(nav);
+  // Reset run button
+  document.getElementById('jdInput').value = '';
+  document.getElementById('resumeInput').value = '';
+  document.getElementById('fileList').innerHTML = '';
+  document.getElementById('fileCounter').textContent = '';
+  updateRunBtn();
+}
+
+// ── GO TO EMAIL PAGE ──────────────────────────────────────────────────────────
+function goToEmailPage(){
+  if(!cachedResults){ alert('Run screening first.'); return; }
+  const minMatch = parseInt(matchSlider.value);
+  const minAts   = parseInt(atsSlider.value);
+
+  const shortlisted = cachedResults
+    .filter(r => r.match_score >= minMatch && r.ats_score >= minAts)
+    .map(r => ({
+      name:        r.name,
+      email:       r.email || '',
+      match_score: r.match_score,
+      ats_score:   r.ats_score,
+      exp_years:   r.exp_years,
+    }));
+
+  const rejected = cachedResults
+    .filter(r => r.match_score < minMatch || r.ats_score < minAts)
+    .map(r => ({
+      name:           r.name,
+      email:          r.email || '',
+      match_score:    r.match_score,
+      ats_score:      r.ats_score,
+      missing_skills: r.missing_skills || [],
+    }));
+
+  if(shortlisted.length === 0 && rejected.length === 0){
+    alert('No candidates found.');
+    return;
+  }
+
+  sessionStorage.setItem('resumeiq_email_context', JSON.stringify({
+    shortlist: shortlisted,
+    rejected: rejected,
+    thresholds: { minMatch, minAts },
+    timestamp: Date.now(),
+  }));
+  window.location.href = 'email.html';
+}
+function copyEmailTemplate() {
+  if (!cachedResults) return;
+  const minMatch = parseInt(matchSlider.value);
+  const minAts   = parseInt(atsSlider.value);
+  const sl = cachedResults.filter(r => r.match_score >= minMatch && r.ats_score >= minAts);
+  const names = sl.map((c,i) => `  ${i+1}. ${c.name}  (Match: ${c.match_score}%  ATS: ${c.ats_score})`).join('\n');
+  const template = `Subject: Shortlisted Candidates — ResumeIQ Screening Report
+
+Hi,
+
+Based on the automated screening (Match ≥${minMatch}%, ATS ≥${minAts}), the following ${sl.length} candidate(s) have been shortlisted:
+
+${names || '  None met the current thresholds.'}
+
+Please review and schedule interviews at your earliest convenience.
+
+Generated by ResumeIQ`;
+  const box = document.getElementById('emailBox');
+  box.textContent = template;
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  navigator.clipboard?.writeText(template).catch(()=>{});
+}
+
+</script>
+</body>
+</html>

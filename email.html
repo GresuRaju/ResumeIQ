@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResumeIQ — Email Center</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ink:#f5f0e8;--paper:#0a0c10;--cream:#12151c;--line:#1e232d;
+  --green:#00e5a0;--red:#f05d5e;--purple:#7c6af7;--gold:#f7c948;
+  --mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif;
+}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+canvas#bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.15;}
+canvas#sendCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;pointer-events:none;display:none;background:rgba(10,12,16,0.92);}
+
+.page{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:40px 28px;}
+
+/* Header */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;}
+.page-header h1{font-size:26px;font-weight:800;letter-spacing:-1px;}
+.page-header h1 em{color:var(--green);font-style:normal;}
+.back-btn{font-family:var(--mono);font-size:11px;color:#556275;text-decoration:none;border:1px solid var(--line);padding:8px 14px;border-radius:4px;transition:all .2s;}
+.back-btn:hover{color:var(--ink);border-color:#556275;}
+
+/* Tab switcher */
+.tab-bar{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:28px;width:fit-content;}
+.tab-btn{
+  padding:12px 28px;font-family:var(--mono);font-size:12px;font-weight:700;
+  cursor:pointer;border:none;background:transparent;color:#556275;
+  transition:all .2s;letter-spacing:.5px;display:flex;align-items:center;gap:8px;
+}
+.tab-btn.active-shortlist{background:rgba(0,229,160,0.12);color:var(--green);border-right:1px solid var(--line);}
+.tab-btn.active-reject{background:rgba(240,93,94,0.12);color:var(--red);}
+.tab-btn:not(.active-shortlist):not(.active-reject):hover{background:#0d0f14;}
+.tab-count{font-size:10px;padding:2px 7px;border-radius:10px;}
+.tab-btn.active-shortlist .tab-count{background:rgba(0,229,160,0.2);color:var(--green);}
+.tab-btn.active-reject .tab-count{background:rgba(240,93,94,0.2);color:var(--red);}
+
+/* Tab panels */
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* Grid */
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.left-col,.right-col{display:flex;flex-direction:column;gap:18px;}
+.panel{background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:22px;}
+
+.sec-label{font-family:var(--mono);font-size:10px;color:#556275;letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px;}
+
+.input-field{width:100%;padding:11px 14px;background:#07080b;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12px;border-radius:6px;outline:none;transition:border-color .2s;}
+.input-field:focus{border-color:var(--green);}
+.input-field.reject-focus:focus{border-color:var(--red);}
+input[type="password"].input-field{letter-spacing:3px;}
+.field-group{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.field-label{font-family:var(--mono);font-size:10px;color:#556275;letter-spacing:.1em;text-transform:uppercase;}
+textarea.input-field{height:100px;resize:none;line-height:1.6;letter-spacing:normal;}
+
+.btn-craft{width:100%;padding:12px;color:#fff;font-family:var(--mono);font-size:12px;font-weight:700;border:none;border-radius:6px;cursor:pointer;transition:all .2s;letter-spacing:.5px;text-transform:uppercase;}
+.btn-craft.green-craft{background:var(--purple);}
+.btn-craft.green-craft:hover{background:#9585ff;box-shadow:0 0 16px rgba(124,106,247,0.4);}
+.btn-craft.red-craft{background:#8b1c1c;}
+.btn-craft.red-craft:hover{background:var(--red);box-shadow:0 0 16px rgba(240,93,94,0.4);}
+.btn-craft:disabled{background:#1e232d;color:#444;cursor:not-allowed;}
+
+.email-preview{background:#07080b;border:1px solid var(--line);border-radius:6px;padding:16px;font-family:var(--mono);font-size:12px;line-height:1.8;color:#8892b0;min-height:130px;white-space:pre-wrap;position:relative;}
+.preview-placeholder{color:#2a3040;font-style:italic;}
+.preview-tag{position:absolute;top:10px;right:10px;font-size:9px;padding:2px 8px;border-radius:3px;letter-spacing:1px;}
+.preview-tag.purple-tag{background:rgba(124,106,247,0.15);border:1px solid rgba(124,106,247,0.3);color:var(--purple);}
+.preview-tag.red-tag{background:rgba(240,93,94,0.15);border:1px solid rgba(240,93,94,0.3);color:var(--red);}
+
+/* Candidate list */
+.cand-list{display:flex;flex-direction:column;gap:7px;max-height:280px;overflow-y:auto;}
+.cand-list::-webkit-scrollbar{width:3px;}
+.cand-list::-webkit-scrollbar-thumb{background:var(--line);}
+.cand-item{background:#0d0f14;border:1px solid var(--line);border-radius:6px;padding:11px 13px;display:flex;align-items:center;gap:11px;}
+.cand-item.sl-item{border-left:3px solid var(--green);}
+.cand-item.rj-item{border-left:3px solid var(--red);}
+.cand-item.no-email{opacity:0.5;}
+.cand-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#000;flex-shrink:0;}
+.cand-avatar.green-av{background:linear-gradient(135deg,var(--purple),var(--green));}
+.cand-avatar.red-av{background:linear-gradient(135deg,#8b1c1c,var(--red));}
+.cand-info{flex:1;min-width:0;}
+.cand-name{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cand-email-txt{font-family:var(--mono);font-size:10px;color:#556275;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cand-meta{font-family:var(--mono);font-size:10px;flex-shrink:0;}
+
+/* Gap chips inside rejection list */
+.gap-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.gap-chip{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(240,93,94,0.08);border:1px solid rgba(240,93,94,0.2);color:var(--red);}
+
+/* Stats */
+.stats-bar{display:flex;gap:10px;margin-bottom:18px;}
+.stat-box{flex:1;background:#0d0f14;border:1px solid var(--line);border-radius:6px;padding:12px;text-align:center;}
+.stat-val{font-size:20px;font-weight:800;}
+.stat-lbl{font-family:var(--mono);font-size:9px;color:#556275;text-transform:uppercase;margin-top:3px;}
+
+/* Send buttons */
+.btn-send{width:100%;padding:15px;font-family:var(--mono);font-size:13px;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:all .2s;letter-spacing:1px;text-transform:uppercase;}
+.btn-send.green-send{background:linear-gradient(135deg,var(--green),#00b87a);color:#000;box-shadow:0 4px 20px rgba(0,229,160,0.2);}
+.btn-send.green-send:hover{box-shadow:0 4px 30px rgba(0,229,160,0.4);transform:translateY(-1px);}
+.btn-send.red-send{background:linear-gradient(135deg,#c0392b,var(--red));color:#fff;box-shadow:0 4px 20px rgba(240,93,94,0.2);}
+.btn-send.red-send:hover{box-shadow:0 4px 30px rgba(240,93,94,0.4);transform:translateY(-1px);}
+.btn-send:disabled{background:#1e232d;color:#444;cursor:not-allowed;box-shadow:none;transform:none;}
+
+.no-email-note{font-family:var(--mono);font-size:11px;color:var(--gold);background:rgba(247,201,72,0.07);border:1px solid rgba(247,201,72,0.2);border-radius:6px;padding:10px 14px;margin-top:10px;line-height:1.6;}
+
+/* Results */
+.results-panel{display:none;margin-top:18px;}
+.result-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11px;}
+.result-item:last-child{border:none;}
+.result-name{flex:1;}
+.sent-ok{color:var(--green);}
+.sent-fail{color:var(--red);}
+
+/* Overlay */
+#sendOverlay{display:none;position:fixed;inset:0;z-index:201;align-items:center;justify-content:center;flex-direction:column;gap:14px;pointer-events:none;}
+#sendOverlay.active{display:flex;}
+#sendStatus{font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-0.5px;}
+#sendSubStatus{font-family:var(--mono);font-size:12px;color:#556275;}
+#sendProgress{font-family:var(--mono);font-size:11px;color:var(--green);margin-top:4px;}
+
+/* Shared Gmail panel — shown once, used by both tabs */
+.gmail-panel-note{font-family:var(--mono);font-size:10px;color:#445165;margin-top:6px;}
+
+@media(max-width:800px){.main-grid{grid-template-columns:1fr;}.page{padding:20px 14px;}}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<canvas id="sendCanvas"></canvas>
+
+<div id="sendOverlay">
+  <div id="sendStatus">Sending emails...</div>
+  <div id="sendSubStatus">Connecting to Gmail SMTP</div>
+  <div id="sendProgress"></div>
+</div>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Resume<em>IQ</em> — Email Center</h1>
+    <a href="workspace.html" class="back-btn">← Back to Workspace</a>
+  </div>
+
+  <!-- Gmail config — shared across both tabs -->
+  <div class="panel" style="margin-bottom:20px;">
+    <div class="sec-label">Gmail Configuration — used for both shortlist & rejection emails</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+      <div class="field-group" style="margin-bottom:0;">
+        <div class="field-label">Sender Gmail</div>
+        <input type="email" class="input-field" id="senderEmail" placeholder="hiring@yourcompany.com">
+      </div>
+      <div class="field-group" style="margin-bottom:0;">
+        <div class="field-label">App Password</div>
+        <input type="password" class="input-field" id="senderPassword" placeholder="xxxx xxxx xxxx xxxx">
+      </div>
+      <div style="display:flex;align-items:flex-end;">
+        <p class="gmail-panel-note">Google Account → Security → 2-Step Verification → App Passwords</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active-shortlist" id="tabShortlist" onclick="switchTab('shortlist')">
+      ✅ Shortlist Emails <span class="tab-count" id="slCount">0</span>
+    </button>
+    <button class="tab-btn" id="tabReject" onclick="switchTab('reject')">
+      ✕ Rejection Emails <span class="tab-count" id="rjCount">0</span>
+    </button>
+  </div>
+
+  <!-- ══ SHORTLIST TAB ══════════════════════════════════════════════════ -->
+  <div class="tab-panel active" id="panelShortlist">
+    <div class="main-grid">
+      <div class="left-col">
+
+        <div class="panel">
+          <div class="sec-label">Email Subject</div>
+          <input type="text" class="input-field" id="slSubject" value="You've been shortlisted — Next Steps">
+        </div>
+
+        <div class="panel">
+          <div class="sec-label">Your Note (AI will craft it)</div>
+          <textarea class="input-field" id="slNote" placeholder="e.g. interview Monday 10AM IST, Zoom link will follow, bring portfolio..."></textarea>
+          <button class="btn-craft green-craft" id="slCraftBtn" style="margin-top:12px;" onclick="craftEmail('shortlist')">
+            ✦ Craft Shortlist Email with AI
+          </button>
+        </div>
+
+        <div class="panel">
+          <div class="sec-label">Email Preview</div>
+          <div class="email-preview" id="slPreview">
+            <span class="preview-placeholder">Crafted email appears here...</span>
+            <span class="preview-tag purple-tag">AI CRAFTED</span>
+          </div>
+        </div>
+
+      </div>
+      <div class="right-col">
+
+        <div class="panel">
+          <div class="sec-label">Shortlisted Candidates</div>
+          <div class="stats-bar">
+            <div class="stat-box"><div class="stat-val" style="color:var(--green)" id="slTotal">0</div><div class="stat-lbl">Total</div></div>
+            <div class="stat-box"><div class="stat-val" style="color:var(--green)" id="slWithEmail">0</div><div class="stat-lbl">With Email</div></div>
+            <div class="stat-box"><div class="stat-val" style="color:var(--red)" id="slNoEmail">0</div><div class="stat-lbl">No Email</div></div>
+          </div>
+          <div class="cand-list" id="slCandList"></div>
+          <div class="no-email-note" id="slNoEmailNote" style="display:none;">⚠ Candidates without email will be skipped.</div>
+        </div>
+
+        <div class="panel">
+          <button class="btn-send green-send" id="slSendBtn" onclick="sendEmails('shortlist')" disabled>
+            🚀 Send Shortlist Emails
+          </button>
+        </div>
+
+        <div class="results-panel" id="slResults">
+          <div class="panel">
+            <div class="sec-label">Send Results</div>
+            <div id="slResultsList"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REJECTION TAB ══════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="panelReject">
+    <div class="main-grid">
+      <div class="left-col">
+
+        <div class="panel">
+          <div class="sec-label">Rejection Email Subject</div>
+          <input type="text" class="input-field reject-focus" id="rjSubject" value="Update on your application — ResumeIQ">
+        </div>
+
+        <div class="panel">
+          <div class="sec-label">Optional Note (AI will handle the rest)</div>
+          <textarea class="input-field reject-focus" id="rjNote" placeholder="e.g. we'll keep your profile for future openings, feel free to re-apply in 6 months..."></textarea>
+          <button class="btn-craft red-craft" id="rjCraftBtn" style="margin-top:12px;" onclick="craftEmail('reject')">
+            ✦ Craft Rejection Email with AI
+          </button>
+        </div>
+
+        <div class="panel">
+          <div class="sec-label">Rejection Email Preview</div>
+          <div class="email-preview" id="rjPreview">
+            <span class="preview-placeholder">AI crafts a respectful rejection with skill gap included...</span>
+            <span class="preview-tag red-tag">AI CRAFTED</span>
+          </div>
+        </div>
+
+      </div>
+      <div class="right-col">
+
+        <div class="panel">
+          <div class="sec-label">Rejected Candidates + Skill Gaps</div>
+          <div class="stats-bar">
+            <div class="stat-box"><div class="stat-val" style="color:var(--red)" id="rjTotal">0</div><div class="stat-lbl">Total</div></div>
+            <div class="stat-box"><div class="stat-val" style="color:var(--green)" id="rjWithEmail">0</div><div class="stat-lbl">With Email</div></div>
+            <div class="stat-box"><div class="stat-val" style="color:var(--red)" id="rjNoEmail">0</div><div class="stat-lbl">No Email</div></div>
+          </div>
+          <div class="cand-list" id="rjCandList"></div>
+          <div class="no-email-note" id="rjNoEmailNote" style="display:none;">⚠ Candidates without email will be skipped.</div>
+        </div>
+
+        <div class="panel">
+          <button class="btn-send red-send" id="rjSendBtn" onclick="sendEmails('reject')" disabled>
+            ✕ Send Rejection Emails
+          </button>
+        </div>
+
+        <div class="results-panel" id="rjResults">
+          <div class="panel">
+            <div class="sec-label">Send Results</div>
+            <div id="rjResultsList"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- .page -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+
+// ── THREE.JS BG ───────────────────────────────────────────────────────────────
+(function(){
+  const c=document.getElementById('bg'),r=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true});
+  r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(innerWidth,innerHeight);
+  const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,500);
+  cam.position.z=35;
+  const geo=new THREE.IcosahedronGeometry(1,0),objs=[];
+  for(let i=0;i<14;i++){
+    const mat=new THREE.MeshBasicMaterial({color:i%2===0?0x00e5a0:0x7c6af7,wireframe:true,transparent:true,opacity:0.04+Math.random()*0.06});
+    const m=new THREE.Mesh(geo,mat);m.scale.setScalar(0.6+Math.random()*2.2);
+    m.position.set((Math.random()-.5)*65,(Math.random()-.5)*45,(Math.random()-.5)*20);
+    objs.push({m,rx:0.002,ry:0.003});sc.add(m);
+  }
+  (function frame(){requestAnimationFrame(frame);objs.forEach(o=>{o.m.rotation.x+=o.rx;o.m.rotation.y+=o.ry;});r.render(sc,cam);})();
+  window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();r.setSize(innerWidth,innerHeight);});
+})();
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+let currentTab = 'shortlist';
+function switchTab(tab){
+  currentTab = tab;
+  document.getElementById('panelShortlist').classList.toggle('active', tab==='shortlist');
+  document.getElementById('panelReject').classList.toggle('active',    tab==='reject');
+  document.getElementById('tabShortlist').className = 'tab-btn' + (tab==='shortlist' ? ' active-shortlist' : '');
+  document.getElementById('tabReject').className    = 'tab-btn' + (tab==='reject'    ? ' active-reject'    : '');
+}
+
+// ── 3D ENVELOPE ANIMATION ─────────────────────────────────────────────────────
+const sendCanvas=document.getElementById('sendCanvas'),sendOverlay=document.getElementById('sendOverlay');
+const sendCtx=sendCanvas.getContext('2d');
+let envelopes=[],animRunning=false,animFrame=null;
+
+function resizeSendCanvas(){sendCanvas.width=innerWidth;sendCanvas.height=innerHeight;}
+resizeSendCanvas();window.addEventListener('resize',resizeSendCanvas);
+
+function makeEnvelope(index,colour){
+  const cx=innerWidth/2,cy=innerHeight/2;
+  return {
+    x:cx,y:cy,tx:innerWidth+100,ty:-100,
+    vx:(innerWidth+100-cx)/90,vy:(-100-cy)/90,
+    rot:0,rotSpeed:(Math.random()-.5)*0.08,
+    scale:1+Math.random()*0.4,alpha:0,
+    phase:'wait',timer:0,delay:index*320,
+    trail:[],colour,label:index+1,
+  };
+}
+
+function drawEnvelope(ctx,env){
+  ctx.save();ctx.globalAlpha=env.alpha;
+  ctx.translate(env.x,env.y);ctx.rotate(env.rot);ctx.scale(env.scale,env.scale);
+  const w=48,h=32;
+  ctx.shadowColor=env.colour;ctx.shadowBlur=18;
+  ctx.fillStyle=env.colour+'22';ctx.strokeStyle=env.colour;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(-w/2,-h/2,w,h,4);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-w/2,-h/2);ctx.lineTo(0,0);ctx.lineTo(w/2,-h/2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-w/2,h/2);ctx.lineTo(0,0);ctx.lineTo(w/2,h/2);ctx.stroke();
+  ctx.fillStyle=env.colour;ctx.font='700 10px IBM Plex Mono,monospace';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(`#${env.label}`,0,0);
+  ctx.restore();
+}
+
+function animateEnvelopes(){
+  sendCtx.clearRect(0,0,sendCanvas.width,sendCanvas.height);
+  let allDone=true;
+  envelopes.forEach(env=>{
+    env.timer++;
+    if(env.phase==='wait'){if(env.timer>env.delay/16)env.phase='rise';allDone=false;return;}
+    if(env.phase==='rise'){
+      env.alpha=Math.min(env.alpha+0.06,1);env.y-=1.5;env.rot+=env.rotSpeed*0.5;
+      if(env.alpha>=1)env.phase='fly';allDone=false;
+    }
+    if(env.phase==='fly'){
+      env.trail.push({x:env.x,y:env.y});if(env.trail.length>18)env.trail.shift();
+      env.x+=env.vx*1.4;env.y+=env.vy*1.4;env.rot+=env.rotSpeed;env.alpha=Math.max(env.alpha-0.008,0);
+      env.trail.forEach((pt,i)=>{
+        sendCtx.save();sendCtx.globalAlpha=(i/env.trail.length)*env.alpha*0.4;
+        sendCtx.fillStyle=env.colour;sendCtx.beginPath();sendCtx.arc(pt.x,pt.y,2,0,Math.PI*2);sendCtx.fill();sendCtx.restore();
+      });
+      if(env.x>innerWidth+120||env.y<-120||env.alpha<=0)env.phase='done';else allDone=false;
+    }
+    if(env.phase!=='done')drawEnvelope(sendCtx,env);
+  });
+  for(let i=0;i<3;i++){
+    sendCtx.save();sendCtx.globalAlpha=Math.random()*0.2;
+    sendCtx.fillStyle=envelopes[0]?.colour||'#00e5a0';
+    sendCtx.beginPath();sendCtx.arc(Math.random()*innerWidth,Math.random()*innerHeight,Math.random()*2,0,Math.PI*2);sendCtx.fill();sendCtx.restore();
+  }
+  if(allDone){
+    animRunning=false;if(animFrame)cancelAnimationFrame(animFrame);
+    setTimeout(()=>{sendCanvas.style.display='none';sendOverlay.classList.remove('active');sendCtx.clearRect(0,0,sendCanvas.width,sendCanvas.height);},600);
+  } else animFrame=requestAnimationFrame(animateEnvelopes);
+}
+
+function startAnimation(count,type){
+  envelopes=[];
+  const colour=type==='reject'?'#f05d5e':'#00e5a0';
+  for(let i=0;i<count;i++)envelopes.push(makeEnvelope(i,colour));
+  sendCanvas.style.display='block';sendOverlay.classList.add('active');
+  document.getElementById('sendProgress').style.color = type==='reject'?'var(--red)':'var(--green)';
+  animRunning=true;animFrame=requestAnimationFrame(animateEnvelopes);
+}
+
+function updateSendStatus(name,idx,total){
+  document.getElementById('sendStatus').textContent=`Sending to ${name}...`;
+  document.getElementById('sendSubStatus').textContent=`${idx} of ${total} dispatched`;
+  document.getElementById('sendProgress').textContent='▓'.repeat(idx)+'░'.repeat(total-idx);
+}
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+let shortlisted = [];
+let rejected    = [];
+let slCrafted   = '';
+let rjCrafted   = '';
+
+function loadCandidates(){
+  try {
+    const data = sessionStorage.getItem('resumeiq_email_context');
+    if(data){
+      const ctx = JSON.parse(data);
+      shortlisted = Array.isArray(ctx.shortlist) ? ctx.shortlist : [];
+      rejected    = Array.isArray(ctx.rejected) ? ctx.rejected : [];
+    }
+  } catch(e){}
+  renderAll();
+}
+
+async function fetchFromDB(){
+  // No backend refresh here; email page should show ongoing screening context only.
+  renderAll();
+}
+
+function renderAll(){
+  renderList('sl', shortlisted, 'green');
+  renderList('rj', rejected,    'red');
+  document.getElementById('slCount').textContent = shortlisted.length;
+  document.getElementById('rjCount').textContent = rejected.length;
+}
+
+function renderList(prefix, list, colour){
+  const total     = list.length;
+  const withEmail = list.filter(c=>c.email&&c.email.includes('@')).length;
+  const noEmail   = total - withEmail;
+  document.getElementById(`${prefix}Total`).textContent    = total;
+  document.getElementById(`${prefix}WithEmail`).textContent= withEmail;
+  document.getElementById(`${prefix}NoEmail`).textContent  = noEmail;
+  if(noEmail>0) document.getElementById(`${prefix}NoEmailNote`).style.display='block';
+
+  const listEl = document.getElementById(`${prefix}CandList`);
+  if(total===0){
+    listEl.innerHTML=`<div style="font-family:var(--mono);font-size:12px;color:#2a3040;padding:16px;text-align:center;">
+      No ${prefix==='sl'?'shortlisted':'rejected'} candidates found.
+    </div>`;
+    return;
+  }
+  listEl.innerHTML='';
+  list.forEach(c=>{
+    const hasEmail = c.email&&c.email.includes('@');
+    const initials = c.name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+    const div = document.createElement('div');
+    div.className = `cand-item ${prefix==='sl'?'sl-item':'rj-item'} ${hasEmail?'':'no-email'}`;
+
+    // Show missing skills as chips for rejected candidates
+    const gapHtml = prefix==='rj' && c.missing_skills && c.missing_skills.length > 0
+      ? `<div class="gap-chips">${c.missing_skills.slice(0,5).map(s=>`<span class="gap-chip">✗ ${s}</span>`).join('')}</div>`
+      : '';
+
+    div.innerHTML=`
+      <div class="cand-avatar ${prefix==='sl'?'green-av':'red-av'}">${initials}</div>
+      <div class="cand-info">
+        <div class="cand-name">${c.name}</div>
+        <div class="cand-email-txt">${hasEmail?c.email:'⚠ No email in resume'}</div>
+        ${gapHtml}
+      </div>
+      <div class="cand-meta" style="color:${colour==='green'?'var(--green)':'var(--red)'};">${c.match_score}%</div>
+    `;
+    listEl.appendChild(div);
+  });
+  updateSendBtns();
+}
+
+function updateSendBtns(){
+  const email = document.getElementById('senderEmail').value.trim();
+  const pass  = document.getElementById('senderPassword').value.trim();
+  document.getElementById('slSendBtn').disabled = !(slCrafted&&email&&pass&&shortlisted.filter(c=>c.email?.includes('@')).length>0);
+  document.getElementById('rjSendBtn').disabled = !(rjCrafted&&email&&pass&&rejected.filter(c=>c.email?.includes('@')).length>0);
+}
+
+['senderEmail','senderPassword'].forEach(id=>document.getElementById(id).addEventListener('input',updateSendBtns));
+
+// ── CRAFT EMAIL ───────────────────────────────────────────────────────────────
+async function craftEmail(type){
+  const isReject = type==='reject';
+  const noteId   = isReject ? 'rjNote'     : 'slNote';
+  const btnId    = isReject ? 'rjCraftBtn' : 'slCraftBtn';
+  const prevId   = isReject ? 'rjPreview'  : 'slPreview';
+  const tagClass = isReject ? 'red-tag'    : 'purple-tag';
+  const note     = document.getElementById(noteId).value.trim();
+  const btn      = document.getElementById(btnId);
+  const preview  = document.getElementById(prevId);
+
+  btn.disabled=true;btn.textContent='⏳ Crafting...';
+  preview.innerHTML=`<span class="preview-placeholder">AI is crafting...</span><span class="preview-tag ${tagClass}">AI CRAFTED</span>`;
+
+  const list       = isReject ? rejected : shortlisted;
+  const sampleName = list.length>0 ? list[0].name.split(' ')[0] : 'Candidate';
+  const sampleGaps = isReject && list[0]?.missing_skills?.length>0
+    ? list[0].missing_skills.slice(0,4).join(', ')
+    : '';
+
+  const endpoint = isReject ? '/api/craft-rejection' : '/api/craft-email';
+
+  try {
+    const res  = await fetch(`http://localhost:8000${endpoint}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        raw_note:       note,
+        candidate_name: sampleName,
+        missing_skills: sampleGaps,   // only used by rejection endpoint
+      })
+    });
+    const data = await res.json();
+    if(data.success){
+      const body = data.email_body;
+      if(isReject) rjCrafted=body; else slCrafted=body;
+      const display = body.replace(new RegExp(sampleName,'g'),'[Name]');
+      preview.innerHTML=`<span style="color:#8892b0;">${escHtml(display)}</span><span class="preview-tag ${tagClass}">AI CRAFTED</span>`;
+    }
+  } catch(e){
+    const fallback = isReject
+      ? `Dear [Name],\n\nThank you for applying. After careful review, we will not be moving forward with your application at this time.\n\n${note||'We encourage you to continue developing your skills and apply again in the future.'}\n\nBest regards,\nHiring Team`
+      : `Dear [Name],\n\nCongratulations! Your profile has been shortlisted.\n\n${note}\n\nBest regards,\nHiring Team`;
+    if(isReject) rjCrafted=fallback; else slCrafted=fallback;
+    preview.innerHTML=`<span style="color:#8892b0;">${escHtml(fallback.replace(/\[Name\]/g,'[Candidate Name]'))}</span><span class="preview-tag ${tagClass}">TEMPLATE</span>`;
+  }
+  btn.disabled=false;
+  btn.textContent=isReject?'✦ Craft Rejection Email with AI':'✦ Craft Shortlist Email with AI';
+  updateSendBtns();
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+
+// ── SEND EMAILS ───────────────────────────────────────────────────────────────
+async function sendEmails(type){
+  const isReject = type==='reject';
+  const email    = document.getElementById('senderEmail').value.trim();
+  const pass     = document.getElementById('senderPassword').value.trim();
+  const subject  = document.getElementById(isReject?'rjSubject':'slSubject').value.trim();
+  const crafted  = isReject ? rjCrafted : slCrafted;
+  const list     = isReject ? rejected  : shortlisted;
+
+  if(!email||!pass||!subject||!crafted){alert('Fill all fields and craft the email first.');return;}
+
+  const eligible = list.filter(c=>c.email&&c.email.includes('@'));
+  if(!eligible.length){alert('No candidates with valid emails.');return;}
+
+  const candidates = eligible.map(c=>({
+    name:      c.name,
+    email:     c.email,
+    email_body: crafted
+      .replace(/\bDear [A-Za-z]+,/, `Dear ${c.name.split(' ')[0]},`)
+      .replace(/\[Name\]/g, c.name.split(' ')[0])
+      .replace(/\[Candidate Name\]/g, c.name.split(' ')[0])
+      // Inject this candidate's actual missing skills into rejection email
+      .replace(/\[SKILL_GAPS\]/g, c.missing_skills?.slice(0,5).join(', ')||''),
+  }));
+
+  startAnimation(candidates.length, type);
+  document.getElementById(isReject?'rjSendBtn':'slSendBtn').disabled=true;
+
+  let statusIdx=0;
+  const iv=setInterval(()=>{
+    if(statusIdx<candidates.length){updateSendStatus(candidates[statusIdx].name,statusIdx+1,candidates.length);statusIdx++;}
+    else clearInterval(iv);
+  },340);
+
+  try {
+    const res  = await fetch('http://localhost:8000/api/send-emails',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({sender_email:email,sender_password:pass,subject,candidates})
+    });
+    const data = await res.json();
+    clearInterval(iv);
+    setTimeout(()=>{
+      if(data && data.success){
+        sessionStorage.setItem('resumeiq_email_sent', Date.now().toString());
+        loadCandidates();
+      }
+      showResults(data, type);
+      document.getElementById(isReject?'rjSendBtn':'slSendBtn').disabled=false;
+    }, candidates.length*340+1200);
+  } catch(e){
+    clearInterval(iv);
+    document.getElementById(isReject?'rjSendBtn':'slSendBtn').disabled=false;
+    alert('Cannot reach backend. Make sure FastAPI is running on localhost:8000');
+  }
+}
+
+function showResults(data, type){
+  const isReject  = type==='reject';
+  const panelId   = isReject?'rjResults':'slResults';
+  const listId    = isReject?'rjResultsList':'slResultsList';
+  const panel     = document.getElementById(panelId);
+  const listEl    = document.getElementById(listId);
+  panel.style.display='block';listEl.innerHTML='';
+
+  (data.sent||[]).forEach(name=>{
+    const d=document.createElement('div');d.className='result-item';
+    d.innerHTML=`<span>✉️</span><span class="result-name">${name}</span><span class="sent-ok">Sent ✓</span>`;
+    listEl.appendChild(d);
+  });
+  (data.failed||[]).forEach(f=>{
+    const d=document.createElement('div');d.className='result-item';
+    d.innerHTML=`<span>⚠️</span><span class="result-name">${f.name}</span><span class="sent-fail">Failed</span>`;
+    listEl.appendChild(d);
+  });
+  const sum=document.createElement('div');
+  sum.style.cssText='margin-top:12px;font-family:var(--mono);font-size:11px;color:#556275;border-top:1px solid var(--line);padding-top:10px;';
+  sum.textContent=`${data.total||0} email(s) sent.`;
+  listEl.appendChild(sum);
+  panel.scrollIntoView({behavior:'smooth'});
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadCandidates();
+
+</script>
+</body>
+</html>

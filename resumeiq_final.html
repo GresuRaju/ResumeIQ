@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResumeIQ — Smart Resume Screening</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ink:#0a0a0a;--paper:#f5f0e8;--cream:#ede8dc;--line:#d4cfc3;
+  --green:#00c87a;--green-dark:#007a4a;--red:#d63a2f;--gold:#c8960a;
+  --purple:#5a4fcf;
+  --mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif;
+}
+html{scroll-behavior:smooth;}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow-x:hidden;cursor:none;}
+
+#cursor{position:fixed;width:10px;height:10px;background:var(--ink);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:background .2s,transform .15s;}
+#cursor-ring{position:fixed;width:32px;height:32px;border:1.5px solid rgba(0,0,0,0.25);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .25s,height .25s,left .1s,top .1s;}
+body:has(a:hover,button:hover,input:hover,textarea:hover) #cursor{background:var(--green-dark);transform:translate(-50%,-50%) scale(1.4);}
+body:has(a:hover,button:hover,input:hover,textarea:hover) #cursor-ring{width:44px;height:44px;border-color:var(--green);}
+
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,0,0,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.035) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+
+nav{position:fixed;top:0;width:100%;z-index:100;padding:0 52px;height:58px;display:flex;align-items:center;justify-content:space-between;background:rgba(245,240,232,0.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.logo{font-family:var(--mono);font-size:15px;font-weight:500;}
+.logo em{color:var(--green-dark);font-style:normal;}
+.nav-center{display:flex;gap:36px;}
+.nav-center a{font-size:13px;color:#777;text-decoration:none;font-family:var(--mono);transition:color .2s;}
+.nav-center a:hover{color:var(--ink);}
+.nav-pill{font-family:var(--mono);font-size:11px;background:var(--green-dark);color:#fff;padding:6px 14px;border-radius:2px;}
+
+/* HERO */
+#hero{min-height:75vh;display:flex;flex-direction:column;justify-content:center;padding:88px 52px 52px;position:relative;z-index:1;}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--green-dark);text-transform:uppercase;margin-bottom:28px;display:flex;align-items:center;gap:12px;}
+.eyebrow::before{content:'';width:28px;height:1px;background:var(--green-dark);}
+h1.headline{font-size:clamp(60px,10vw,136px);font-weight:800;line-height:0.88;letter-spacing:-4px;margin-bottom:52px;}
+h1.headline .dim{color:#bbb;}
+h1.headline .accent{color:var(--green-dark);}
+.hero-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:48px;flex-wrap:wrap;}
+.hero-desc p{font-size:16px;line-height:1.8;color:#555;max-width:500px;margin-bottom:28px;}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;}
+.btn-solid{background:var(--ink);color:var(--paper);padding:14px 30px;font-size:14px;font-weight:600;text-decoration:none;border:2px solid var(--ink);transition:all .2s;font-family:var(--sans);display:inline-block;text-align:center;}
+.btn-solid:hover{background:transparent;color:var(--ink);}
+.btn-line{background:transparent;color:var(--ink);padding:14px 30px;font-size:14px;font-weight:500;text-decoration:none;border:2px solid var(--ink);transition:all .2s;}
+.btn-line:hover{background:var(--ink);color:var(--paper);}
+.hero-nums{display:flex;gap:40px;flex-wrap:wrap;}
+.hnum-item{text-align:right;}
+.hnum-val{font-size:44px;font-weight:800;letter-spacing:-2px;line-height:1;color:var(--ink);}
+.hnum-val span{font-size:20px;color:var(--green-dark);}
+.hnum-label{font-family:var(--mono);font-size:11px;color:#999;margin-top:6px;}
+
+/* MARQUEE */
+.ticker{background:var(--ink);padding:13px 0;overflow:hidden;position:relative;z-index:1;}
+.ticker-track{display:flex;white-space:nowrap;animation:ticker 24s linear infinite;}
+.ticker-item{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,0.45);padding:0 28px;}
+.ticker-item em{color:var(--green);font-style:normal;}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* FEATURES GRID */
+#features{padding:70px 52px;max-width:1240px;margin:0 auto;position:relative;z-index:1;}
+.section-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--green-dark);text-transform:uppercase;margin-bottom:16px;}
+.section-h{font-size:clamp(30px,4.5vw,58px);font-weight:800;letter-spacing:-2px;margin-bottom:64px;line-height:1.05;}
+
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);}
+.feat-card{background:var(--paper);padding:36px 30px;transition:background .2s;position:relative;overflow:hidden;}
+.feat-card:hover{background:var(--ink);color:var(--paper);}
+.feat-card:hover .feat-sub{color:#aaa;}
+.feat-card:hover .feat-tag{border-color:#333;color:#666;}
+.feat-card:hover .feat-snippet{background:#111;color:var(--green);}
+.feat-num{font-family:var(--mono);font-size:10px;color:#bbb;margin-bottom:20px;letter-spacing:2px;}
+.feat-icon-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.feat-icon{width:36px;height:36px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.feat-card:hover .feat-icon{border-color:#333;}
+.feat-title{font-size:19px;font-weight:700;letter-spacing:-0.3px;}
+.feat-sub{font-size:13px;color:#777;line-height:1.65;font-family:var(--mono);margin-top:10px;}
+.feat-snippet{font-family:var(--mono);font-size:10px;padding:10px 12px;background:var(--cream);color:var(--green-dark);margin-top:16px;line-height:1.7;}
+.feat-tag{display:inline-block;margin-top:14px;font-family:var(--mono);font-size:10px;border:1px solid var(--line);padding:3px 8px;color:#aaa;}
+
+/* PIPELINE */
+#pipeline{padding:70px 0;position:relative;z-index:1;}
+.pipeline-header{padding:0 52px;margin-bottom:52px;}
+.pipe-scroll{display:flex;overflow-x:auto;padding:0 52px 28px;gap:0;scrollbar-width:thin;scrollbar-color:var(--line) transparent;}
+.pipe-scroll::-webkit-scrollbar{height:3px;}
+.pipe-scroll::-webkit-scrollbar-thumb{background:var(--line);}
+.pipe-step{min-width:260px;border:1px solid var(--line);padding:30px 26px;flex-shrink:0;position:relative;transition:background .2s;}
+.pipe-step:hover{background:var(--ink);color:var(--paper);}
+.pipe-step:hover .pipe-detail{color:#888;}
+.pipe-step:hover .pipe-fn{background:#111;color:var(--green);}
+.pipe-step:hover .pipe-arrow-badge{background:var(--green);color:#000;}
+.pipe-n{font-family:var(--mono);font-size:10px;color:#aaa;letter-spacing:2px;margin-bottom:18px;}
+.pipe-icon-box{width:40px;height:40px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:14px;}
+.pipe-step:hover .pipe-icon-box{border-color:#333;}
+.pipe-name{font-size:17px;font-weight:700;letter-spacing:-0.3px;margin-bottom:8px;}
+.pipe-detail{font-family:var(--mono);font-size:11px;color:#888;line-height:1.6;}
+.pipe-fn{font-family:var(--mono);font-size:10px;padding:8px 10px;background:var(--cream);color:var(--green-dark);margin-top:14px;}
+.pipe-arrow-badge{position:absolute;right:-1px;top:50%;transform:translateY(-50%);width:22px;height:22px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:11px;z-index:2;}
+
+/* FORMULA */
+#formula{padding:70px 52px;max-width:1240px;margin:0 auto;position:relative;z-index:1;}
+.formula-layout{display:grid;grid-template-columns:1fr 1.1fr;gap:72px;align-items:start;}
+.formula-left h2{font-size:clamp(28px,3.5vw,50px);font-weight:800;letter-spacing:-2px;margin-bottom:16px;line-height:1.05;}
+.formula-left p{font-size:14px;line-height:1.8;color:#666;font-family:var(--mono);margin-bottom:32px;}
+.mode-toggle{display:flex;border:1.5px solid var(--ink);width:fit-content;margin-bottom:40px;}
+.modeBtn{padding:9px 22px;font-family:var(--mono);font-size:12px;cursor:pointer;border:none;background:transparent;transition:all .2s;font-weight:500;}
+.modeBtn.active{background:var(--ink);color:var(--paper);}
+.weights{display:flex;flex-direction:column;gap:14px;}
+.w-row{display:flex;align-items:center;gap:14px;}
+.w-label{font-family:var(--mono);font-size:12px;color:#666;width:130px;flex-shrink:0;}
+.w-track{flex:1;height:6px;background:var(--line);overflow:hidden;}
+.w-fill{height:100%;background:var(--green-dark);transform:scaleX(0);transform-origin:left;transition:transform 1.2s cubic-bezier(.22,1,.36,1),width .4s ease;}
+.w-val{font-family:var(--mono);font-size:12px;font-weight:600;width:32px;text-align:right;}
+.formula-right{border:1px solid var(--line);overflow:hidden;}
+.code-titlebar{padding:10px 16px;background:var(--cream);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;}
+.ctb-dot{width:10px;height:10px;border-radius:50%;}
+.code-label{font-family:var(--mono);font-size:11px;color:#999;margin-left:8px;}
+.code-body{padding:28px 24px;font-family:var(--mono);font-size:12px;line-height:2;background:var(--ink);color:#bbb;min-height:280px;}
+.ck{color:#7c6af7}.cv{color:#f7c948}.cf{color:#00c87a}.cc{color:#555}.cs{color:#f05d5e}
+
+/* APPROACH */
+#approach{padding:70px 52px;max-width:1240px;margin:0 auto;position:relative;z-index:1;}
+.approach-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:56px;}
+.approach-cell{background:var(--paper);padding:40px 32px;transition:background .2s;}
+.approach-cell:hover{background:var(--cream);}
+.ap-tag{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--green-dark);text-transform:uppercase;margin-bottom:20px;}
+.ap-h{font-size:20px;font-weight:700;letter-spacing:-0.5px;margin-bottom:12px;}
+.ap-p{font-family:var(--mono);font-size:12px;color:#777;line-height:1.75;}
+.ap-code{font-family:var(--mono);font-size:10px;padding:10px 12px;background:var(--ink);color:var(--green);margin-top:18px;line-height:1.8;}
+
+/* WORKSPACE DEMO */
+#demo{padding:120px 52px;max-width:1240px;margin:0 auto;position:relative;z-index:1;}
+.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:52px;}
+.demo-card{border:1px solid var(--line);padding:32px 28px;background:var(--paper);position:relative;}
+.demo-card.pass{border-top:3px solid var(--green-dark);}
+.demo-card.fail{border-top:3px solid var(--red);}
+.dc-label{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;color:#999;}
+.dc-scores{display:flex;align-items:center;gap:28px;margin-bottom:24px;}
+.score-circle{position:relative;width:88px;height:88px;flex-shrink:0;border:2px dashed var(--line);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.score-circle .snum{font-size:22px;font-weight:800;font-family:var(--mono);}
+.dc-meta{flex:1;}
+.dc-ats-val{font-size:32px;font-weight:800;font-family:var(--mono);line-height:1;}
+.dc-ats-label{font-family:var(--mono);font-size:11px;color:#999;margin-top:4px;}
+.dc-sim{font-family:var(--mono);font-size:12px;color:#777;margin-top:8px;}
+.criteria-ul{list-style:none;}
+.criteria-ul li{display:flex;align-items:center;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-family:var(--mono);}
+.criteria-ul li:last-child{border:none;}
+.ck-pass{color:var(--green-dark);font-weight:700;}
+.ck-fail{color:var(--red);font-weight:700;}
+.chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:16px;}
+.chip{font-family:var(--mono);font-size:10px;padding:3px 8px;border:1px solid var(--line);color:#555;}
+
+/* FOOTER */
+footer{background:var(--ink);color:var(--paper);padding:50px 52px;position:relative;z-index:1;}
+.footer-inner{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:56px;margin-bottom:56px;}
+.footer-logo{font-family:var(--mono);font-size:18px;margin-bottom:14px;}
+.footer-logo em{color:var(--green);font-style:normal;}
+footer p{font-size:13px;color:#555;line-height:1.75;font-family:var(--mono);}
+.footer-list{list-style:none;}
+.footer-list li{margin-bottom:10px;}
+.footer-list a,
+.footer-author a{font-family:var(--mono);font-size:13px;color:#555;text-decoration:none;transition:color .2s;}
+.footer-list a:hover,
+.footer-author a:hover{color:var(--green);}
+.footer-author{font-family:var(--mono);font-size:13px;color:#555;line-height:1.75;}
+.footer-author strong{display:block;color:#e2e8f0;margin-bottom:10px;font-size:13px;}
+.footer-subtitle{color:#777;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;font-family:var(--mono);}
+.footer-divider{border-top:1px solid #1a1a1a;padding-top:28px;display:flex;justify-content:space-between;align-items:center;}
+.footer-divider p{font-family:var(--mono);font-size:12px;color:#444;}
+
+canvas#bg3d{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.28;}
+
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .65s ease,transform .65s ease;}
+.reveal.on{opacity:1;transform:none;}
+
+@media(max-width:900px){
+  nav{padding:0 20px;} .nav-center{display:none;}
+  #hero,#features,#formula,#approach,#demo,footer,#pipeline .pipeline-header{padding-left:20px;padding-right:20px;}
+  h1.headline{letter-spacing:-2px;}
+  .features-grid,.approach-grid,.formula-layout,.demo-grid,.footer-inner{grid-template-columns:1fr;}
+  .hero-nums{gap:20px;}
+}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="bg3d"></canvas>
+
+<nav>
+  <div class="logo">Resume<em>IQ</em> <span style="font-size:11px;color:#bbb;margin-left:6px;">✦</span></div>
+  <div class="nav-center">
+    <a href="#features">Features</a>
+    <a href="#pipeline">Pipeline</a>
+    <a href="#formula">Formula</a>
+    <a href="#approach">Approach</a>
+    <a href="workspace.html">Workspace Dashboard</a>
+  </div>
+  <div class="nav-pill">Smart Screening</div>
+</nav>
+
+<section id="hero">
+  <div class="eyebrow">Resume Screening · NLP + ML · Instant Rankings</div>
+  <h1 class="headline">
+    Screen<br>
+    <span class="accent">Smarter.</span><br>
+    <span class="dim">Rank Faster.</span>
+  </h1>
+  <div class="hero-bottom">
+    <div class="hero-desc">
+      <p>Upload resumes, paste a job description — get instant ATS scores, ML-powered match rankings, skill gap analysis, and one-click shortlist export.</p>
+      <div class="hero-btns">
+        <a href="#features" class="btn-solid">Explore Features</a>
+        <a href="workspace.html" class="btn-line">Open Workspace Dashboard</a>
+      </div>
+    </div>
+    <div class="hero-nums">
+      <div class="hnum-item"><div class="hnum-val" data-count="97"><span>0</span></div><div class="hnum-label">Max ATS Score</div></div>
+      <div class="hnum-item"><div class="hnum-val" data-count="8"><span>0</span></div><div class="hnum-label">Output Tabs</div></div>
+      <div class="hnum-item"><div class="hnum-val" data-count="6"><span>0</span></div><div class="hnum-label">ATS Checks</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="ticker">
+  <div class="ticker-track">
+    <span class="ticker-item">Match Score Ranking</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">ATS Criteria Audit</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Skill Gap Analysis</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Fresher Mode</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">BERT Similarity</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Multi-JD Heatmap</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Candidate Radar Chart</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">CSV Export</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Recruiter Email Template</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Logistic Regression · SVM</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Match Score Ranking</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">ATS Criteria Audit</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Skill Gap Analysis</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Fresher Mode</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">BERT Similarity</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Multi-JD Heatmap</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Candidate Radar Chart</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">CSV Export</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Recruiter Email Template</span><span class="ticker-item"><em>·</em></span>
+    <span class="ticker-item">Logistic Regression · SVM</span><span class="ticker-item"><em>·</em></span>
+  </div>
+</div>
+
+<section id="features">
+  <div class="section-eyebrow reveal">// What ResumeIQ Gives You</div>
+  <h2 class="section-h reveal">Everything a Recruiter<br>Actually Needs.</h2>
+  <div class="features-grid">
+
+    <div class="feat-card reveal">
+      <div class="feat-num">FEATURE 01</div>
+      <div class="feat-icon-row"><div class="feat-icon">🏆</div><div class="feat-title">Match Score Ranking</div></div>
+      <p class="feat-sub">Every resume gets a 0–99 match score. Candidates sorted descending instantly. Pass/fail threshold you control.</p>
+      <div class="feat-snippet">results.sort(key=lambda x:<br>  x["match_score"], reverse=True)</div>
+      <span class="feat-tag">Ranked output</span>
+    </div>
+
+    <div class="feat-card reveal">
+      <div class="feat-num">FEATURE 02</div>
+      <div class="feat-icon-row"><div class="feat-icon">✅</div><div class="feat-title">ATS Criteria Audit</div></div>
+      <p class="feat-sub">6 real ATS checks: keyword ratio ≥50%, experience, contact info, education, sections, optimal length. Each shown pass/fail.</p>
+      <div class="feat-snippet">criteria = [keywords, experience,<br>contact, education, sections,<br>length_80_to_800w]</div>
+      <span class="feat-tag">6 checks · transparent</span>
+    </div>
+
+    <div class="feat-card reveal">
+      <div class="feat-num">FEATURE 03</div>
+      <div class="feat-icon-row"><div class="feat-icon">🔍</div><div class="feat-title">Skill Gap Analysis</div></div>
+      <p class="feat-sub">Shows exactly which JD skills each candidate has and which they're missing. Matched vs missing chips, bar chart overview.</p>
+      <div class="feat-snippet">gap = generate_gap_analysis(<br>  resume_skills, jd_skills)</div>
+      <span class="feat-tag">Per candidate · visual</span>
+    </div>
+
+    <div class="feat-card reveal">
+      <div class="feat-num">FEATURE 04</div>
+      <div class="feat-icon-row"><div class="feat-icon">🎓</div><div class="feat-title">Fresher Mode</div></div>
+      <p class="feat-sub">Zero experience? No penalty. Detects internships (+8pts) and projects (+5pts). Formula reweighted to 60% skills, 40% TF-IDF.</p>
+      <div class="feat-snippet">if has_internship: score += 8<br>elif has_projects:  score += 5</div>
+      <span class="feat-tag">0–1 yr candidates</span>
+    </div>
+
+    <div class="feat-card reveal">
+      <div class="feat-num">FEATURE 05</div>
+      <div class="feat-icon-row"><div class="feat-icon">⚔️</div><div class="feat-title">Candidate Comparison</div></div>
+      <p class="feat-sub">Select up to 3 candidates. Radar chart across 5 dimensions: Match, ATS, Skill Overlap, TF-IDF Similarity, Experience.</p>
+      <div class="feat-snippet">plot_candidate_comparison(<br>  selected, jd_skills)</div>
+      <span class="feat-tag">Radar · side-by-side</span>
+    </div>
+
+    <div class="feat-card reveal">
+      <div class="feat-num">FEATURE 06</div>
+      <div class="feat-icon-row"><div class="feat-icon">🌐</div><div class="feat-title">Multi-JD Mode</div></div>
+      <p class="feat-sub">Screen the same resumes against up to 3 different job descriptions at once. Heatmap shows who fits which role best.</p>
+      <div class="feat-snippet">score_against_multiple_jds(<br>  text, jd_entries)</div>
+      <span class="feat-tag">3 JDs · heatmap</span>
+    </div>
+
+    <div class="feat-card reveal">
+      <div class="feat-num">FEATURE 07</div>
+      <div class="feat-icon-row"><div class="feat-icon">🔬</div><div class="feat-title">BERT Similarity</div></div>
+      <p class="feat-sub">Toggle on BERT-based semantic similarity alongside TF-IDF. Separate ranking tab shows BERT-scored order for comparison.</p>
+      <div class="feat-snippet">use_bert = st.toggle(<br>  "Use BERT Similarity")</div>
+      <span class="feat-tag">Semantic · toggle</span>
+    </div>
+
+    <div class="feat-card reveal">
+      <div class="feat-num">FEATURE 08</div>
+      <div class="feat-icon-row"><div class="feat-icon">⬇️</div><div class="feat-title">CSV Export + Email</div></div>
+      <p class="feat-sub">Download shortlisted or all candidates as CSV with scores, skills, and status. Auto-generates a recruiter email template ready to send.</p>
+      <div class="feat-snippet">df.to_csv("shortlisted.csv")<br>+ recruiter_email_template.txt</div>
+      <span class="feat-tag">CSV · email ready</span>
+    </div>
+
+    <div class="feat-card reveal">
+      <div class="feat-num">FEATURE 09</div>
+      <div class="feat-icon-row"><div class="feat-icon">🤖</div><div class="feat-title">ML Model Metrics</div></div>
+      <p class="feat-sub">Switch between Logistic Regression (91.2% acc) and SVM RBF (93.7% acc). Confusion matrix, precision, recall, F1, feature importance shown.</p>
+      <div class="feat-snippet">LR: acc=91.2% f1=91.2%<br>SVM: acc=93.7% f1=93.4%</div>
+      <span class="feat-tag">LR · SVM · metrics</span>
+    </div>
+
+  </div>
+</section>
+
+<section id="pipeline">
+  <div class="pipeline-header reveal">
+    <div class="section-eyebrow">// ML Pipeline</div>
+    <h2 class="section-h" style="margin-bottom:0">From PDF to Ranked<br>Candidate in 6 Steps.</h2>
+  </div>
+  <div class="pipe-scroll">
+    <div class="pipe-step reveal">
+      <div class="pipe-n">STAGE 01</div>
+      <div class="pipe-icon-box">📄</div>
+      <div class="pipe-name">Upload & Extract</div>
+      <p class="pipe-detail">PDF or TXT resumes. PyMuPDF + pdfplumber extracts raw text. Handles multi-column layouts gracefully.</p>
+      <div class="pipe-fn">extract_text_from_pdf(raw)</div>
+      <div class="pipe-arrow-badge">→</div>
+    </div>
+    <div class="pipe-step reveal">
+      <div class="pipe-n">STAGE 02</div>
+      <div class="pipe-icon-box">🧹</div>
+      <div class="pipe-name">Preprocess</div>
+      <p class="pipe-detail">Lowercase, strip punctuation, tokenize. Stop-word filter. Prepares text for both skill matching and TF-IDF.</p>
+      <div class="pipe-fn">re.sub(r"[^a-z0-9\s]"," ",t)</div>
+      <div class="pipe-arrow-badge">→</div>
+    </div>
+    <div class="pipe-step reveal">
+      <div class="pipe-n">STAGE 03</div>
+      <div class="pipe-icon-box">🔍</div>
+      <div class="pipe-name">Skill Extraction</div>
+      <p class="pipe-detail">80-skill vocabulary. Word-boundary regex for single tokens. Substring match for multi-word phrases like "natural language processing".</p>
+      <div class="pipe-fn">extract_skills(resume_text)</div>
+      <div class="pipe-arrow-badge">→</div>
+    </div>
+    <div class="pipe-step reveal">
+      <div class="pipe-n">STAGE 04</div>
+      <div class="pipe-icon-box">📐</div>
+      <div class="pipe-name">TF-IDF Cosine Sim</div>
+      <p class="pipe-detail">scikit-learn TfidfVectorizer. Cosine distance between resume and JD vectors. Returns 0→1 semantic closeness.</p>
+      <div class="pipe-fn">cosine_similarity(tfidf[0],tfidf[1])</div>
+      <div class="pipe-arrow-badge">→</div>
+    </div>
+    <div class="pipe-step reveal">
+      <div class="pipe-n">STAGE 05</div>
+      <div class="pipe-icon-box">✅</div>
+      <div class="pipe-name">ATS Scoring</div>
+      <p class="pipe-detail">6 deterministic checks. Keyword ratio × 40 + pass rate × 60. Fresher mode reweights formula. Capped at 97.</p>
+      <div class="pipe-fn">calc_ats_score(resume, jd)</div>
+      <div class="pipe-arrow-badge">→</div>
+    </div>
+    <div class="pipe-step reveal" style="border-right:2px solid var(--green-dark);">
+      <div class="pipe-n">STAGE 06</div>
+      <div class="pipe-icon-box">🏆</div>
+      <div class="pipe-name">Ranked Output</div>
+      <p class="pipe-detail">Weighted formula: 40% skill overlap + 35% TF-IDF + 25% experience. Sorted, shortlisted, exported — all in one click.</p>
+      <div class="pipe-fn">score_candidate(text, jd)</div>
+    </div>
+  </div>
+</section>
+
+<section id="formula">
+  <div class="formula-layout">
+    <div class="formula-left reveal">
+      <div class="section-eyebrow">// Scoring Formula</div>
+      <h2>Weights You Can<br>See and Trust.</h2>
+      <p>Two modes, transparent math. Toggle between Experienced and Fresher to see exactly how each dimension is weighted.</p>
+      <div class="mode-toggle">
+        <button class="modeBtn active" onclick="switchMode('exp',this)">Experienced</button>
+        <button class="modeBtn" onclick="switchMode('fresh',this)">Fresher</button>
+      </div>
+      <div class="weights" id="weightsViz">
+        <div class="w-row">
+          <span class="w-label">Skill Overlap</span>
+          <div class="w-track"><div class="w-fill" id="wb1" style="width:40%"></div></div>
+          <span class="w-val" id="wv1">40%</span>
+        </div>
+        <div class="w-row">
+          <span class="w-label">TF-IDF Sim</span>
+          <div class="w-track"><div class="w-fill" id="wb2" style="width:35%"></div></div>
+          <span class="w-val" id="wv2">35%</span>
+        </div>
+        <div class="w-row">
+          <span class="w-label">Experience</span>
+          <div class="w-track"><div class="w-fill" id="wb3" style="width:25%"></div></div>
+          <span class="w-val" id="wv3">25%</span>
+        </div>
+        <div class="w-row" id="bonusRow" style="display:none">
+          <span class="w-label">Internship bonus</span>
+          <div class="w-track"><div class="w-fill" id="wb4" style="width:8%;background:var(--gold)"></div></div>
+          <span class="w-val" id="wv4">+8</span>
+        </div>
+      </div>
+    </div>
+    <div class="formula-right reveal">
+      <div class="code-titlebar">
+        <div class="ctb-dot" style="background:#ff5f57"></div>
+        <div class="ctb-dot" style="background:#febc2e"></div>
+        <div class="ctb-dot" style="background:#28c840"></div>
+        <span class="code-label" id="codeFilename">nlp_engine.py · experienced mode</span>
+      </div>
+      <div class="code-body" id="codeBody">
+<span class="cc"># Experienced mode scoring</span>
+<span class="ck">def</span> <span class="cf">score_candidate</span>(resume, jd):
+  ats  = <span class="cf">calc_ats_score</span>(resume, jd)
+  sim  = <span class="cf">tfidf_cosine_similarity</span>(resume, jd)
+
+  exp  = <span class="cf">min</span>(exp_years / <span class="cv">4.0</span>, <span class="cv">1.0</span>)
+
+  raw  = (<span class="cv">0.40</span> * keyword_ratio
+        + <span class="cv">0.35</span> * sim
+        + <span class="cv">0.25</span> * exp)
+
+  <span class="ck">return</span> <span class="cf">min</span>(<span class="cf">int</span>(raw * <span class="cv">100</span> + <span class="cv">10</span>), <span class="cv">99</span>)
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="approach">
+  <div class="section-eyebrow reveal">// The Approach</div>
+  <h2 class="section-h reveal">Why Every Score<br>is Explainable.</h2>
+  <div class="approach-grid">
+    <div class="approach-cell reveal">
+      <div class="ap-tag">Similarity</div>
+      <div class="ap-h">TF-IDF Cosine Distance</div>
+      <p class="ap-p">scikit-learn vectorizes both the resume and JD into TF-IDF space. Cosine angle between the two vectors gives a 0→1 score that reflects true semantic overlap, not just exact keyword hits.</p>
+      <div class="ap-code">vect.fit_transform([doc_a, doc_b])<br>cosine_similarity(tfidf[0], tfidf[1])</div>
+    </div>
+    <div class="approach-cell reveal">
+      <div class="ap-tag">Skills</div>
+      <div class="ap-h">Regex + Vocabulary Matching</div>
+      <p class="ap-p">An 80-skill vocabulary covers programming, ML/DL frameworks, NLP, data, MLOps, cloud, and soft skills. Word-boundary regex prevents false matches. Multi-word phrases matched as substrings.</p>
+      <div class="ap-code">re.search(r'\b' + skill + r'\b',<br>          text_lower)</div>
+    </div>
+    <div class="approach-cell reveal">
+      <div class="ap-tag">ATS Logic</div>
+      <div class="ap-h">6 Deterministic Checks</div>
+      <p class="ap-p">Each ATS criterion is a real-world hiring filter: keyword density, years of experience, contact presence, education detection, section structure, and document length. Every check is shown to the user.</p>
+      <div class="ap-code">pass_count / len(criteria) × 60<br>+ keyword_ratio × 40 → ats_score</div>
+    </div>
+  </div>
+</section>
+
+<section id="demo" style="background: rgba(237, 242, 236, 0.45); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);">
+  <div class="section-eyebrow">// Live Production Core Workspace</div>
+  <h2 class="section-h">Process Your Resumes <br>In Real-Time.</h2>
+
+  <div style="background: var(--paper); border: 1px solid var(--line); padding: 40px; margin-top: 30px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px;">
+      
+      <div>
+        <label style="font-family: var(--mono); font-size: 11px; font-weight:600; display:block; margin-bottom:12px; letter-spacing:1px; color:#666;">01. ASSIGN TARGET JOB DESCRIPTION DESCRIPTION</label>
+        <textarea id="jdInput" style="width:100%; height:200px; padding:15px; font-family:var(--mono); font-size:12px; line-height:1.6; border:1px solid var(--line); background:transparent; outline:none; resize:none;" placeholder="Paste text requirements here..."></textarea>
+        
+        <div style="display:flex; gap: 24px; margin-top: 20px;">
+          <label style="font-family:var(--mono); font-size:12px; display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="fresherModeCheckbox" style="accent-color:var(--ink);"> Fresher Mode Parameters
+          </label>
+          <label style="font-family:var(--mono); font-size:12px; display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="bertCheckbox" style="accent-color:var(--ink);"> Use BERT Semantic Analytics
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label style="font-family: var(--mono); font-size: 11px; font-weight:600; display:block; margin-bottom:12px; letter-spacing:1px; color:#666;">02. MOUNT CANDIDATE FILES BUFFER</label>
+        <div style="border: 2px dashed var(--line); height:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; position:relative; background: rgba(0,0,0,0.015); transition: background 0.3s;">
+          <input type="file" id="resumeFiles" multiple accept=".pdf,.txt" style="position:absolute; inset:0; opacity:0; cursor:pointer;">
+          <p style="font-size:15px; font-weight:700; margin-bottom:6px; letter-spacing:-0.5px;">Drag & Drop System Files</p>
+          <p style="font-family:var(--mono); font-size:11px; color:#888;">Accepts multiple structured .pdf or .txt formats</p>
+          <div id="fileCounter" style="margin-top:16px; font-family:var(--mono); font-size:11px; color:var(--green-dark); font-weight:600;"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <button id="processBtn" class="btn-solid" style="width:100%; text-align:center; padding:16px; cursor:pointer; font-size:13px; font-family:var(--mono); letter-spacing:1px;">▶ EXECUTE NEURAL SCREENING PIPELINE RUNNER</button>
+  </div>
+
+  <div id="runtimeResultsContainer" style="margin-top: 70px; display:none;">
+     <h3 style="font-size: clamp(24px, 3.5vw, 44px); font-weight:800; letter-spacing:-2px; margin-bottom:35px;">Pipeline Outputs & Candidate Breakdown</h3>
+     <div id="resultsGrid" class="demo-grid" style="margin-top:0px;"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">Resume<em>IQ</em> ✦</div>
+      <p>Smart Resume Screening & Job Matching System using Machine Learning + NLP. Instant rankings, ATS audits, skill gaps — all in one place.</p>
+    </div>
+    <div>
+      <p class="footer-subtitle">Features</p>
+      <ul class="footer-list">
+        <li><a href="#features">Match Score Ranking</a></li>
+        <li><a href="#features">ATS Criteria Audit</a></li>
+        <li><a href="#features">Skill Gap Analysis</a></li>
+        <li><a href="#features">Multi-JD Mode</a></li>
+        <li><a href="#features">BERT Similarity</a></li>
+        <li><a href="#features">CSV Export</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="footer-subtitle">Author</p>
+      <div class="footer-author">
+        <strong>Gresu Raju</strong>
+        <p><a href="https://github.com/GresuRaju" target="_blank" rel="noopener noreferrer">github: https://github.com/GresuRaju</a></p>
+        <p><a href="https://www.linkedin.com/in/gresu-raju-talari-0b4711298/" target="_blank" rel="noopener noreferrer">linkedin: https://www.linkedin.com/in/gresu-raju-talari-0b4711298/</a></p>
+      </div>
+    </div>
+  </div>
+  <div class="footer-divider">
+    <p>© 2026 ResumeIQ · MIT License</p>
+    <p>9 features · 6-stage pipeline · 2 scoring modes</p>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// CURSOR
+const cur=document.getElementById('cursor'),curR=document.getElementById('cursor-ring');
+let cx=0,cy=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{cx=e.clientX;cy=e.clientY;});
+(function loop(){rx+=(cx-rx)*.1;ry+=(cy-ry)*.1;cur.style.cssText+=`;left:${cx}px;top:${cy}px`;curR.style.cssText+=`;left:${rx}px;top:${ry}px`;requestAnimationFrame(loop);})();
+
+// 3D BG
+const c3=document.getElementById('bg3d');
+const ren=new THREE.WebGLRenderer({canvas:c3,antialias:true,alpha:true});
+ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.setSize(innerWidth,innerHeight);ren.setClearColor(0,0);
+const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,500);
+cam.position.z=30;
+const icoG=new THREE.IcosahedronGeometry(1,0);
+const objs=[];
+for(let i=0;i<20;i++){
+  const m=new THREE.MeshBasicMaterial({color:i%3===0?0x007a4a:i%3===1?0x444444:0x1a1a1a,wireframe:true,transparent:true,opacity:.12+Math.random()*.18});
+  const s=.5+Math.random()*2;
+  const mesh=new THREE.Mesh(icoG,m);
+  mesh.scale.setScalar(s);
+  mesh.position.set((Math.random()-.5)*60,(Math.random()-.5)*40,(Math.random()-.5)*20);
+  objs.push({mesh,rx:.003+Math.random()*.005,ry:.002+Math.random()*.004,fp:Math.random()*Math.PI*2,fs:.003+Math.random()*.003});
+  sc.add(mesh);
+}
+const grid=new THREE.GridHelper(100,20,0x2a2a2a,0x141414);
+grid.rotation.x=Math.PI/3;grid.position.z=-12;sc.add(grid);
+let mx=0,my=0;
+document.addEventListener('mousemove',e=>{mx=(e.clientX/innerWidth-.5)*3;my=(e.clientY/innerHeight-.5)*2;});
+window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);});
+let t=0;
+(function frame(){requestAnimationFrame(frame);t+=.01;
+  objs.forEach(o=>{o.mesh.rotation.x+=o.rx;o.mesh.rotation.y+=o.ry;o.mesh.position.y+=Math.sin(t*o.fs*10+o.fp)*.005;});
+  grid.rotation.z=t*.008;
+  cam.position.x+=(mx-cam.position.x)*.03;cam.position.y+=(-my-cam.position.y)*.03;cam.lookAt(0,0,0);
+  ren.render(sc,cam);
+})();
+
+// COUNT-UP
+const cObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){
+    document.querySelectorAll('[data-count]').forEach(el=>{
+      const t=+el.dataset.count,sp=el.querySelector('span');let c=0;
+      const iv=setInterval(()=>{c=Math.min(c+t/50,t);sp.textContent=Math.round(c);if(c>=t)clearInterval(iv);},20);
+    });cObs.disconnect();}});
+},{threshold:.5});
+const hn=document.querySelector('.hero-nums');if(hn)cObs.observe(hn);
+
+// WEIGHT BARS ANIMATE
+const wObs=new IntersectionObserver(e=>{e.forEach(en=>{if(en.isIntersecting){document.querySelectorAll('.w-fill').forEach(b=>b.style.transform='scaleX(1)');wObs.disconnect();}});},{threshold:.4});
+const wv=document.getElementById('weightsViz');if(wv)wObs.observe(wv);
+
+// FORMULA TOGGLE
+const expCode=`<span class="cc"># Experienced mode scoring</span>
+<span class="ck">def</span> <span class="cf">score_candidate</span>(resume, jd):
+  ats  = <span class="cf">calc_ats_score</span>(resume, jd)
+  sim  = <span class="cf">tfidf_cosine_similarity</span>(resume, jd)
+
+  exp  = <span class="cf">min</span>(exp_years / <span class="cv">4.0</span>, <span class="cv">1.0</span>)
+
+  raw  = (<span class="cv">0.40</span> * keyword_ratio
+        + <span class="cv">0.35</span> * sim
+        + <span class="cv">0.25</span> * exp)
+
+  <span class="ck">return</span> <span class="cf">min</span>(<span class="cf">int</span>(raw * <span class="cv">100</span> + <span class="cv">10</span>), <span class="cv">99</span>)`;
+
+const freshCode=`<span class="cc"># Fresher mode — no exp penalty</span>
+<span class="ck">def</span> <span class="cf">score_candidate</span>(resume, jd):
+  sim  = <span class="cf">tfidf_cosine_similarity</span>(resume, jd)
+
+  raw  = (<span class="cv">0.60</span> * keyword_ratio
+        + <span class="cv">0.40</span> * sim)
+
+  score = <span class="cf">int</span>(raw * <span class="cv">100</span>)
+  <span class="ck">if</span>   has_internship: score += <span class="cv">8</span>
+  <span class="ck">elif</span> has_projects:   score += <span class="cv">5</span>
+
+  <span class="ck">return</span> <span class="cf">min</span>(score, <span class="cv">95</span>)`;
+
+function switchMode(mode,btn){
+  document.querySelectorAll('.modeBtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('codeBody').innerHTML = mode==='exp'?expCode:freshCode;
+  document.getElementById('codeFilename').textContent = mode==='exp'?'nlp_engine.py · experienced mode':'nlp_engine.py · fresher mode';
+  if(mode==='exp'){
+    setW('wb1','wv1','40%','40%'); setW('wb2','wv2','35%','35%'); setW('wb3','wv3','25%','25%');
+    document.getElementById('bonusRow').style.display='none';
+  } else {
+    setW('wb1','wv1','60%','60%'); setW('wb2','wv2','40%','40%'); setW('wb3','wv3','0%','0%');
+    document.getElementById('bonusRow').style.display='flex';
+  }
+}
+function setW(bid,vid,w,label){
+  document.getElementById(bid).style.width=w;
+  document.getElementById(vid).textContent=label;
+}
+
+// SCROLL REVEAL
+const rObs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('on');rObs.unobserve(e.target);}});},{threshold:.07});
+document.querySelectorAll('.reveal').forEach(el=>rObs.observe(el));
+
+// ── ASYNCHRONOUS BACKEND INTERFACE ENGINE ──
+document.getElementById('resumeFiles').addEventListener('change', function(e) {
+  const count = e.target.files.length;
+  document.getElementById('fileCounter').textContent = count > 0 ? `📂 ${count} resume document(s) staged.` : "";
+});
+
+document.getElementById('processBtn').addEventListener('click', async function() {
+  const jdText = document.getElementById('jdInput').value;
+  const fileInput = document.getElementById('resumeFiles');
+  
+  if(!jdText.trim() || fileInput.files.length === 0) {
+    alert("Please provide a valid job requirement description and stage candidate resumes.");
+    return;
+  }
+  
+  this.textContent = "PROCESSING MATRIX VECTORS... PLEASE WAIT...";
+  this.style.opacity = "0.5";
+  this.disabled = true;
+
+  const formData = new FormData();
+  formData.append("job_description", jdText);
+  formData.append("fresher_mode", document.getElementById('fresherModeCheckbox').checked);
+  formData.append("use_bert", document.getElementById('bertCheckbox').checked);
+  
+  for (let i = 0; i < fileInput.files.length; i++) {
+    formData.append("resumes", fileInput.files[i]);
+  }
+
+  try {
+    const response = await fetch('http://localhost:8000/api/screen', {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await response.json();
+    if(data.success) {
+      renderLiveAppResults(data.results);
+    } else {
+      alert("Pipeline calculations failed.");
+    }
+  } catch (error) {
+    console.error("Connection error:", error);
+    alert("Could not interface cleanly with the backend API engine loop.");
+  } finally {
+    this.textContent = "▶ EXECUTE NEURAL SCREENING PIPELINE RUNNER";
+    this.style.opacity = "1";
+    this.disabled = false;
+  }
+});
+
+function renderLiveAppResults(candidates) {
+  const container = document.getElementById('runtimeResultsContainer');
+  const grid = document.getElementById('resultsGrid');
+  grid.innerHTML = ""; 
+  
+  candidates.forEach((cand, idx) => {
+    // Match logic configuration parameters mapping directly to your system configs
+    const isPass = cand.match_score >= 60 && cand.ats_score >= 50;
+    const cardStatusClass = isPass ? "pass" : "fail";
+    const statusSign = isPass ? "✓ Shortlisted" : "× Not Qualified";
+    const accentColor = isPass ? "var(--green-dark)" : "var(--red)";
+    
+    let criteriaHtml = "";
+    cand.criteria.forEach(crit => {
+      criteriaHtml += `<li><span class="${crit.pass ? 'ck-pass' : 'ck-fail'}">${crit.pass ? '✓' : '✗'}</span> ${crit.label}</li>`;
+    });
+
+    let matchedSkillsHtml = "";
+    cand.matched_skills.forEach(skill => {
+      matchedSkillsHtml += `<span class="chip" style="background:rgba(0,122,74,0.04); color:var(--green-dark); border-color:rgba(0,122,74,0.2)">✓ ${skill}</span>`;
+    });
+
+    let missingSkillsHtml = "";
+    cand.missing_skills.forEach(skill => {
+      missingSkillsHtml += `<span class="chip" style="background:rgba(214,58,47,0.03); color:var(--red); border-color:rgba(214,58,47,0.2)">✗ ${skill}</span>`;
+    });
+
+    const card = document.createElement('div');
+    card.className = `demo-card ${cardStatusClass}`;
+    card.style.background = "var(--paper)";
+    card.innerHTML = `
+      <div class="dc-label">// Matrix Evaluation Rank #${idx+1} · ${cand.name}</div>
+      <div class="dc-scores">
+        <div class="score-circle">
+          <div class="snum" style="color:${accentColor}">${cand.match_score}%</div>
+        </div>
+        <div class="dc-meta">
+          <div class="dc-ats-val" style="color:${accentColor}">${cand.ats_score}</div>
+          <div class="dc-ats-label">ATS Score Check</div>
+          <div class="dc-sim">TF-IDF Overlap: ${cand.sim.toFixed(1)}% ${cand.bert_sim ? `| BERT Semantic: ${cand.bert_sim.toFixed(1)}%` : ''}</div>
+        </div>
+      </div>
+      <ul class="criteria-ul">${criteriaHtml}</ul>
+      <div style="font-size:11px; color:#777; font-family:var(--mono); margin-top:16px; margin-bottom:6px;">Skill Matrix Coverage Evaluation</div>
+      <div class="chip-row">${matchedSkillsHtml} ${missingSkillsHtml}</div>
+      <div style="margin-top:15px; font-size:12px; font-weight:700; color:${accentColor}">${statusSign} (${cand.exp_years} Yrs Exp)</div>
+    `;
+    grid.appendChild(card);
+  });
+  
+  container.style.display = "block";
+  container.scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
