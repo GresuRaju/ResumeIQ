@@ -147,6 +147,7 @@ pdfplumber
 google-generativeai
 python-dotenv
 httpx
+plotly 
 ```
 
 ---
