@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+pydantic
+scikit-learn
+sentence-transformers
+httpx
+google-generativeai
+PyMuPDF
