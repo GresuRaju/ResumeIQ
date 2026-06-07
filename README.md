@@ -207,8 +207,6 @@ The same App Password works for both sending emails and scanning the inbox.
 
 ## Deployment
 
-See `DEPLOYMENT.txt` for full step-by-step guide.
-
 **Quick summary:**
 - Backend → [Render.com](https://render.com) (free tier)
 - Frontend → [Netlify](https://netlify.com) (free tier)
@@ -222,7 +220,7 @@ See `DEPLOYMENT.txt` for full step-by-step guide.
 **Gresu Raju**  
 B.Tech AIML · 2026  
 Vignan's Lara Institute of Technology, Guntur, Andhra Pradesh
-Fresher till No JOB(2026-june)
+
 
 ---
 
