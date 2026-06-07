@@ -222,6 +222,7 @@ See `DEPLOYMENT.txt` for full step-by-step guide.
 **Gresu Raju**  
 B.Tech AIML · 2026  
 Vignan's Lara Institute of Technology, Guntur, Andhra Pradesh
+Fresher till No JOB(2026-june)
 
 ---
 
